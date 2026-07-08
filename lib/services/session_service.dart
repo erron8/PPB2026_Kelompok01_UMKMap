@@ -1,0 +1,3 @@
+class SessionService {
+  const SessionService();
+}

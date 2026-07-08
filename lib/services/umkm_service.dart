@@ -1,0 +1,3 @@
+class UmkmService {
+  const UmkmService();
+}

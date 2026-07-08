@@ -1,0 +1,1 @@
+-- Supabase schema will be added in Phase 1 from the locked plan.

@@ -1,0 +1,3 @@
+class Kategori {
+  const Kategori();
+}

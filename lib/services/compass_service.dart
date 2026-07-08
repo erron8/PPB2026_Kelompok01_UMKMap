@@ -1,0 +1,3 @@
+class CompassService {
+  const CompassService();
+}

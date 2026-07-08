@@ -1,0 +1,3 @@
+class Umkm {
+  const Umkm();
+}

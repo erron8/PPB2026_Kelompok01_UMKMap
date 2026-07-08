@@ -1,0 +1,3 @@
+class SupabaseClientConfig {
+  const SupabaseClientConfig();
+}

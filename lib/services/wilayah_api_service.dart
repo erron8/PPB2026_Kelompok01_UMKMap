@@ -1,0 +1,3 @@
+class WilayahApiService {
+  const WilayahApiService();
+}
