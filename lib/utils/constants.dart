@@ -6,6 +6,7 @@ class AppConfig {
   static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
   static const wilayahBaseUrl =
       'https://emsifa.github.io/api-wilayah-indonesia/api';
+  static const nominatimBaseUrl = 'https://nominatim.openstreetmap.org';
 }
 
 class AppTables {

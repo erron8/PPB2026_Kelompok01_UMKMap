@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../services/geocoding_service.dart';
 import '../utils/app_exception.dart';
 
 typedef CurrentLocationLoader = Future<LatLng> Function();
@@ -14,6 +15,7 @@ class MapCoordinatePicker extends StatefulWidget {
     this.initialLongitude,
     this.enabled = true,
     this.currentLocationLoader,
+    this.geocodingService,
     this.errorText,
   });
 
@@ -24,6 +26,7 @@ class MapCoordinatePicker extends StatefulWidget {
   final double? initialLongitude;
   final bool enabled;
   final CurrentLocationLoader? currentLocationLoader;
+  final GeocodingService? geocodingService;
   final String? errorText;
 
   @override
@@ -31,15 +34,24 @@ class MapCoordinatePicker extends StatefulWidget {
 }
 
 class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
+  static const _minimumSearchInterval = Duration(seconds: 1);
+
+  final _addressController = TextEditingController();
   final _mapController = MapController();
+  late GeocodingService _geocodingService;
   late LatLng _center;
   LatLng? _selectedPoint;
+  List<GeocodeResult> _geocodeResults = const [];
   bool _isLoadingLocation = false;
+  bool _isSearching = false;
+  bool _addressSearchCompleted = false;
   String? _locationErrorMessage;
+  DateTime? _lastSearchStartedAt;
 
   @override
   void initState() {
     super.initState();
+    _geocodingService = widget.geocodingService ?? GeocodingService();
     final initialPoint = _initialPoint;
     _center = initialPoint ?? MapCoordinatePicker.defaultCenter;
     _selectedPoint = initialPoint;
@@ -48,6 +60,9 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
   @override
   void didUpdateWidget(covariant MapCoordinatePicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.geocodingService != widget.geocodingService) {
+      _geocodingService = widget.geocodingService ?? GeocodingService();
+    }
     final initialChanged =
         oldWidget.initialLatitude != widget.initialLatitude ||
         oldWidget.initialLongitude != widget.initialLongitude;
@@ -59,6 +74,12 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
         _mapController.move(initialPoint, 15);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
   }
 
   LatLng? get _initialPoint {
@@ -89,6 +110,56 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
             context,
           ).textTheme.bodySmall?.copyWith(color: colorScheme.outline),
         ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _addressController,
+                enabled: widget.enabled && !_isSearching,
+                textInputAction: TextInputAction.search,
+                onSubmitted: widget.enabled && !_isSearching
+                    ? (_) => _searchAddress()
+                    : null,
+                decoration: const InputDecoration(
+                  labelText: 'Cari alamat lengkap',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.search),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: widget.enabled && !_isSearching
+                  ? _searchAddress
+                  : null,
+              icon: _isSearching
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.search),
+              label: const Text('Cari'),
+            ),
+          ],
+        ),
+        if (_geocodeResults.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _GeocodeResultList(
+            results: _geocodeResults,
+            enabled: widget.enabled,
+            onSelected: _selectGeocodeResult,
+          ),
+        ] else if (_addressSearchCompleted && !_isSearching) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Alamat tidak ditemukan.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+          ),
+        ],
         const SizedBox(height: 8),
         DecoratedBox(
           decoration: BoxDecoration(
@@ -200,6 +271,67 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
     widget.onChanged(point);
   }
 
+  Future<void> _searchAddress() async {
+    if (!widget.enabled || _isSearching) return;
+
+    final query = _addressController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _geocodeResults = const [];
+        _addressSearchCompleted = false;
+        _locationErrorMessage = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _addressSearchCompleted = false;
+      _geocodeResults = const [];
+      _locationErrorMessage = null;
+    });
+
+    try {
+      final lastSearchStartedAt = _lastSearchStartedAt;
+      if (lastSearchStartedAt != null) {
+        final elapsed = DateTime.now().difference(lastSearchStartedAt);
+        if (elapsed < _minimumSearchInterval) {
+          await Future<void>.delayed(_minimumSearchInterval - elapsed);
+        }
+      }
+
+      _lastSearchStartedAt = DateTime.now();
+      final results = await _geocodingService.search(query);
+      if (!mounted) return;
+      setState(() {
+        _geocodeResults = results.take(5).toList(growable: false);
+        _addressSearchCompleted = true;
+      });
+    } on AppException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _locationErrorMessage = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _locationErrorMessage = 'Gagal mencari alamat. Coba lagi.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
+    }
+  }
+
+  void _selectGeocodeResult(GeocodeResult result) {
+    setState(() {
+      _geocodeResults = const [];
+      _addressSearchCompleted = false;
+    });
+    _selectPoint(result.point, moveMap: true);
+  }
+
   Future<void> _useCurrentLocation() async {
     final loader = widget.currentLocationLoader;
     if (loader == null) return;
@@ -228,5 +360,49 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
         setState(() => _isLoadingLocation = false);
       }
     }
+  }
+}
+
+class _GeocodeResultList extends StatelessWidget {
+  const _GeocodeResultList({
+    required this.results,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final List<GeocodeResult> results;
+  final bool enabled;
+  final ValueChanged<GeocodeResult> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: colorScheme.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          for (var index = 0; index < results.length; index++) ...[
+            ListTile(
+              dense: true,
+              enabled: enabled,
+              leading: const Icon(Icons.place_outlined),
+              title: Text(
+                results[index].displayName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: enabled ? () => onSelected(results[index]) : null,
+            ),
+            if (index < results.length - 1) const Divider(height: 1),
+          ],
+        ],
+      ),
+    );
   }
 }
