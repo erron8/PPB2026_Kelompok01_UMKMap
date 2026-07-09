@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/wilayah.dart';
 import '../providers/auth_provider.dart';
 import '../providers/umkm_provider.dart';
+import '../utils/constants.dart';
 import '../widgets/loading_and_error.dart';
 import '../widgets/umkm_card.dart';
 import '../widgets/wilayah_dropdowns.dart';
@@ -133,14 +134,22 @@ class _UmkmListScreenState extends State<UmkmListScreen> {
     final auth = context.watch<AuthProvider>();
     final provider = context.watch<UmkmProvider>();
     final canShowMine = auth.status == AuthStatus.authenticated;
+    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: const Color(AppColors.background),
       appBar: AppBar(title: const Text('Daftar UMKM')),
       floatingActionButton: canShowMine
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/umkm-form'),
               icon: const Icon(Icons.add_business),
-              label: const Text('Tambah'),
+              label: Text(
+                'Tambah',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             )
           : null,
       body: Column(
@@ -187,6 +196,8 @@ class _SearchAndFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -195,7 +206,7 @@ class _SearchAndFilters extends StatelessWidget {
             child: SearchBar(
               controller: searchController,
               hintText: 'Cari nama usaha',
-              leading: const Icon(Icons.search),
+              leading: Icon(Icons.search, color: colorScheme.primary),
               trailing: searchController.text.isEmpty
                   ? null
                   : [
@@ -205,7 +216,10 @@ class _SearchAndFilters extends StatelessWidget {
                           searchController.clear();
                           onSearchChanged('');
                         },
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Color(AppColors.oliveGrey),
+                        ),
                       ),
                     ],
               onChanged: onSearchChanged,
@@ -213,10 +227,16 @@ class _SearchAndFilters extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton.filledTonal(
+          IconButton(
             tooltip: 'Filter wilayah',
             onPressed: onRegionPressed,
-            icon: const Icon(Icons.location_city),
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(48),
+              backgroundColor: colorScheme.primaryContainer,
+              foregroundColor: colorScheme.primary,
+              shape: const CircleBorder(),
+            ),
+            icon: const Icon(Icons.tune),
           ),
         ],
       ),
@@ -234,23 +254,68 @@ class _ListModeTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: SizedBox(
-        width: double.infinity,
-        child: SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(
-              value: false,
-              icon: Icon(Icons.storefront),
-              label: Text('Direktori'),
+      child: Container(
+        height: 48,
+        decoration: const ShapeDecoration(
+          color: Color(AppColors.primaryContainer),
+          shape: StadiumBorder(),
+        ),
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            Expanded(
+              child: _SegmentedPillButton(
+                label: 'Semua',
+                selected: !showMine,
+                onTap: () => onChanged(false),
+              ),
             ),
-            ButtonSegment(
-              value: true,
-              icon: Icon(Icons.inventory_2_outlined),
-              label: Text('UMKM Saya'),
+            Expanded(
+              child: _SegmentedPillButton(
+                label: 'UMKM Saya',
+                selected: showMine,
+                onTap: () => onChanged(true),
+              ),
             ),
           ],
-          selected: {showMine},
-          onSelectionChanged: (values) => onChanged(values.first),
+        ),
+      ),
+    );
+  }
+}
+
+class _SegmentedPillButton extends StatelessWidget {
+  const _SegmentedPillButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Material(
+      color: selected ? colorScheme.primary : Colors.transparent,
+      shape: const StadiumBorder(),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: selected ? null : onTap,
+        child: Center(
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: selected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onPrimaryContainer,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
@@ -271,6 +336,8 @@ class _CategoryChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categories = provider.categories;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     if (provider.isLoadingCategories && categories.isEmpty) {
       return const SizedBox(
@@ -311,6 +378,18 @@ class _CategoryChips extends StatelessWidget {
           return ChoiceChip(
             label: Text(isAll ? 'Semua' : category!.nama),
             selected: selected,
+            labelStyle: theme.textTheme.bodySmall?.copyWith(
+              color: selected
+                  ? colorScheme.onPrimary
+                  : const Color(AppColors.textMuted),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            ),
+            backgroundColor: colorScheme.surface,
+            selectedColor: colorScheme.primary,
+            side: selected
+                ? BorderSide.none
+                : const BorderSide(color: Color(AppColors.hairline)),
+            shape: const StadiumBorder(),
             onSelected: (_) => onSelected(category?.id),
           );
         },
@@ -331,19 +410,19 @@ class _InlineRetryBanner extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(Icons.wifi_off, color: colorScheme.onErrorContainer),
+            Icon(Icons.wifi_off, color: colorScheme.primary),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
-                style: TextStyle(color: colorScheme.onErrorContainer),
+                style: TextStyle(color: colorScheme.onPrimaryContainer),
               ),
             ),
             TextButton(onPressed: onRetry, child: const Text('Coba Lagi')),
@@ -362,13 +441,26 @@ class _ActiveRegionFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: InputChip(
-          avatar: const Icon(Icons.location_city, size: 18),
+          avatar: Icon(
+            Icons.location_city,
+            size: 18,
+            color: colorScheme.primary,
+          ),
           label: Text(label, overflow: TextOverflow.ellipsis),
+          labelStyle: const TextStyle(
+            color: Color(AppColors.onSecondary),
+            fontWeight: FontWeight.w700,
+          ),
+          backgroundColor: const Color(AppColors.secondary),
+          deleteIconColor: colorScheme.primary,
+          side: BorderSide.none,
           onDeleted: onClear,
         ),
       ),
@@ -395,10 +487,7 @@ class _ListBody extends StatelessWidget {
       );
     }
     if (provider.items.isEmpty) {
-      return const LoadingAndError(
-        emptyMessage: 'Belum ada UMKM yang sesuai dengan filter.',
-        icon: Icons.search_off,
-      );
+      return const _EmptyListState();
     }
 
     return RefreshIndicator(
@@ -418,6 +507,56 @@ class _ListBody extends StatelessWidget {
             onTap: () => context.push('/umkm/${umkm.id}'),
           );
         },
+      ),
+    );
+  }
+}
+
+class _EmptyListState extends StatelessWidget {
+  const _EmptyListState();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.storefront,
+                color: colorScheme.primary,
+                size: 44,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada UMKM',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Coba ubah pencarian atau filter wilayah.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(AppColors.textSubtle),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
