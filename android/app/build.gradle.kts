@@ -24,6 +24,9 @@ android {
 
     defaultConfig {
         applicationId = "com.ppb2026.umkmap"
+        // minSdk 24 (Android 7.0), per revised NFR-06. Android 6.0 (API 23) was
+        // dropped because image_picker_android and shared_preferences_android
+        // both hard-require minSdk 24. flutter.minSdkVersion resolves to 24.
         minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode
