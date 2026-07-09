@@ -142,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? null
                           : () {
                               context.read<AuthProvider>().continueAsGuest();
-                              context.go('/umkm');
+                              context.go('/dashboard');
                             },
                       child: const Text('Lanjut sebagai tamu'),
                     ),

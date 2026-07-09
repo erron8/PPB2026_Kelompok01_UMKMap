@@ -190,7 +190,7 @@ void main() {
     expect(provider.user, isNull);
   });
 
-  testWidgets('guest router guard allows only public list/map/detail routes', (
+  testWidgets('guest router guard allows public dashboard/list/map/detail', (
     tester,
   ) async {
     final provider = AuthProvider(
@@ -198,6 +198,12 @@ void main() {
       sessionService: const SessionService(),
     )..continueAsGuest();
     final router = await _pumpRouterApp(tester, provider);
+
+    router.go('/dashboard');
+    await tester.pumpAndSettle();
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Halo, Tamu'), findsOneWidget);
+    expect(find.text('Anda masuk sebagai tamu.'), findsOneWidget);
 
     router.go('/umkm');
     await tester.pumpAndSettle();
@@ -211,11 +217,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Detail UMKM'), findsOneWidget);
 
-    for (final protectedRoute in ['/dashboard', '/profile', '/umkm-form']) {
+    for (final protectedRoute in ['/profile', '/umkm-form']) {
       router.go(protectedRoute);
       await tester.pumpAndSettle();
       expect(find.text('Masuk'), findsWidgets);
     }
+  });
+
+  testWidgets('guest dashboard shows login-required dialog for tambah UMKM', (
+    tester,
+  ) async {
+    final provider = AuthProvider(
+      authService: _FakeAuthService(),
+      sessionService: const SessionService(),
+    )..continueAsGuest();
+    final router = await _pumpRouterApp(tester, provider);
+
+    router.go('/dashboard');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tambah UMKM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Perlu Masuk'), findsOneWidget);
+    expect(
+      find.text(
+        'Fitur ini hanya tersedia untuk pengguna yang sudah masuk. '
+        'Masuk terlebih dahulu untuk melanjutkan.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Nanti'));
+    await tester.pumpAndSettle();
+    expect(find.text('Perlu Masuk'), findsNothing);
+
+    await tester.tap(find.text('Tambah UMKM'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Masuk').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Email'), findsOneWidget);
   });
 
   testWidgets('authenticated router guard sends auth routes to dashboard', (

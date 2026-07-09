@@ -6,6 +6,7 @@ import '../models/umkm.dart';
 import '../providers/auth_provider.dart';
 import '../providers/umkm_provider.dart';
 import '../services/umkm_service.dart';
+import '../widgets/login_required_dialog.dart';
 import '../widgets/status_chip.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -43,6 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final auth = context.watch<AuthProvider>();
     final provider = context.watch<UmkmProvider>();
     final user = auth.user;
+    final isGuest = auth.isGuest;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -51,7 +53,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             tooltip: 'Profil',
-            onPressed: () => context.push('/profile'),
+            onPressed: isGuest
+                ? () => showLoginRequiredDialog(context)
+                : () => GoRouter.of(context).push('/profile'),
             icon: const Icon(Icons.person),
           ),
         ],
@@ -66,7 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Halo, ${user?.fullName ?? 'Pengguna'}',
+                    'Halo, ${user?.fullName ?? (isGuest ? 'Tamu' : 'Pengguna')}',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -76,39 +80,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            _StatsSection(
-              stats: provider.stats,
-              isLoading: provider.isLoadingStats,
-              errorMessage: provider.statsErrorMessage,
-              onRetry: _loadDashboardData,
-            ),
-            const SizedBox(height: 20),
+            if (!isGuest) ...[
+              _StatsSection(
+                stats: provider.stats,
+                isLoading: provider.isLoadingStats,
+                errorMessage: provider.statsErrorMessage,
+                onRetry: _loadDashboardData,
+              ),
+              const SizedBox(height: 20),
+            ],
             const _MenuGrid(),
-            if (auth.isAdmin) ...[
+            if (isGuest) ...[
+              const SizedBox(height: 20),
+              const _GuestPrompt(),
+            ] else ...[
+              if (auth.isAdmin) ...[
+                const SizedBox(height: 24),
+                _UmkmSection(
+                  title: 'Menunggu Verifikasi',
+                  items: provider.pendingVerificationItems,
+                  isLoading: provider.isLoadingPendingVerification,
+                  errorMessage: provider.pendingVerificationErrorMessage,
+                  emptyMessage: 'Tidak ada UMKM yang menunggu verifikasi.',
+                  onRetry: () =>
+                      context.read<UmkmProvider>().loadPendingVerification(),
+                ),
+              ],
               const SizedBox(height: 24),
               _UmkmSection(
-                title: 'Menunggu Verifikasi',
-                items: provider.pendingVerificationItems,
-                isLoading: provider.isLoadingPendingVerification,
-                errorMessage: provider.pendingVerificationErrorMessage,
-                emptyMessage: 'Tidak ada UMKM yang menunggu verifikasi.',
-                onRetry: () =>
-                    context.read<UmkmProvider>().loadPendingVerification(),
+                title: 'UMKM Terbaru',
+                items: provider.dashboardRecentItems,
+                isLoading: provider.isLoadingDashboardRecent,
+                errorMessage: provider.dashboardRecentErrorMessage,
+                emptyMessage: auth.isAdmin
+                    ? 'Belum ada data UMKM.'
+                    : 'Anda belum memiliki data UMKM.',
+                onRetry: () => context.read<UmkmProvider>().loadDashboardRecent(
+                  ownerId: user?.isAdmin == true ? null : user?.id,
+                ),
               ),
             ],
-            const SizedBox(height: 24),
-            _UmkmSection(
-              title: 'UMKM Terbaru',
-              items: provider.dashboardRecentItems,
-              isLoading: provider.isLoadingDashboardRecent,
-              errorMessage: provider.dashboardRecentErrorMessage,
-              emptyMessage: auth.isAdmin
-                  ? 'Belum ada data UMKM.'
-                  : 'Anda belum memiliki data UMKM.',
-              onRetry: () => context.read<UmkmProvider>().loadDashboardRecent(
-                ownerId: user?.isAdmin == true ? null : user?.id,
-              ),
-            ),
           ],
         ),
       ),
@@ -124,15 +135,14 @@ class _RoleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final label = role == 'admin' ? 'Admin' : 'Pemilik';
+    final (label, icon) = switch (role) {
+      'admin' => ('Admin', Icons.admin_panel_settings_outlined),
+      'tamu' => ('Tamu', Icons.person_outline),
+      _ => ('Pemilik', Icons.storefront_outlined),
+    };
 
     return Chip(
-      avatar: Icon(
-        role == 'admin'
-            ? Icons.admin_panel_settings_outlined
-            : Icons.storefront_outlined,
-        size: 18,
-      ),
+      avatar: Icon(icon, size: 18),
       label: Text(label),
       backgroundColor: colorScheme.primaryContainer,
       side: BorderSide.none,
@@ -283,11 +293,13 @@ class _MenuGrid extends StatelessWidget {
           title: 'Tambah UMKM',
           icon: Icons.add_business,
           route: '/umkm-form',
+          requiresAuth: true,
         ),
         _MenuTile(
           title: 'Profil',
           icon: Icons.person_outline,
           route: '/profile',
+          requiresAuth: true,
         ),
       ],
     );
@@ -299,11 +311,13 @@ class _MenuTile extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.route,
+    this.requiresAuth = false,
   });
 
   final String title;
   final IconData icon;
   final String route;
+  final bool requiresAuth;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +332,14 @@ class _MenuTile extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.push(route),
+        onTap: () {
+          final isGuest = context.read<AuthProvider>().isGuest;
+          if (requiresAuth && isGuest) {
+            showLoginRequiredDialog(context);
+          } else {
+            GoRouter.of(context).push(route);
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
@@ -337,6 +358,57 @@ class _MenuTile extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuestPrompt extends StatelessWidget {
+  const _GuestPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Anda masuk sebagai tamu.',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Masuk untuk menambah UMKM dan mengelola profil Anda.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => GoRouter.of(context).go('/login'),
+                    child: const Text('Masuk'),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
