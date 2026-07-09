@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -353,6 +355,7 @@ class UmkmProvider extends ChangeNotifier {
       _upsertItem(updated);
       _upsertMapItem(updated);
       mutationErrorMessage = null;
+      unawaited(_refreshAdminDashboard());
       return updated;
     } on AppException catch (error) {
       mutationErrorMessage = error.message;
@@ -361,6 +364,14 @@ class UmkmProvider extends ChangeNotifier {
       isChangingStatus = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _refreshAdminDashboard() async {
+    await Future.wait([
+      loadPendingVerification(),
+      loadDashboardStats(ownerId: null),
+      loadDashboardRecent(ownerId: null),
+    ]);
   }
 
   void setSearchQuery(String value) {
