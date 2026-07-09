@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../utils/constants.dart';
+
 typedef PickPhoto = Future<XFile?> Function(ImageSource source);
 
 class PhotoPickerField extends StatefulWidget {
@@ -64,34 +66,41 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
         InkWell(
           key: const ValueKey('photo_picker_field'),
           onTap: widget.enabled ? _showSourceSheet : null,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadii.radiusCard),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.all(color: colorScheme.outline),
-              borderRadius: BorderRadius.circular(8),
-              color: colorScheme.surface,
+              border: Border.all(color: const Color(AppColors.photoDash)),
+              borderRadius: BorderRadius.circular(AppRadii.radiusCard),
+              color: colorScheme.primaryContainer,
             ),
             child: SizedBox(
-              height: 184,
+              height: 160,
               child: hasPhoto
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(7),
+                          borderRadius: BorderRadius.circular(
+                            AppRadii.radiusCard,
+                          ),
                           child: _PhotoPreview(
                             file: _selectedFile,
                             photoUrl: widget.photoUrl,
                           ),
                         ),
                         Positioned(
-                          top: 8,
+                          bottom: 8,
                           right: 8,
-                          child: IconButton.filledTonal(
+                          child: IconButton.filled(
                             key: const ValueKey('photo_remove_button'),
                             tooltip: 'Hapus Foto',
                             onPressed: widget.enabled ? _removePhoto : null,
-                            icon: const Icon(Icons.delete_outline),
+                            style: IconButton.styleFrom(
+                              backgroundColor: colorScheme.surface,
+                              foregroundColor: colorScheme.primary,
+                              shape: const StadiumBorder(),
+                            ),
+                            icon: const Icon(Icons.delete_outline, size: 18),
                           ),
                         ),
                       ],
@@ -228,7 +237,7 @@ class _PhotoPreview extends StatelessWidget {
 }
 
 class _EmptyPhotoState extends StatelessWidget {
-  const _EmptyPhotoState({this.message = 'Tambah Foto'});
+  const _EmptyPhotoState({this.message = 'Tambah foto'});
 
   final String message;
 
@@ -240,13 +249,27 @@ class _EmptyPhotoState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.add_a_photo_outlined,
-            size: 36,
-            color: colorScheme.primary,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Color(AppColors.surface),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.add_a_photo_outlined,
+              size: 24,
+              color: colorScheme.primary,
+            ),
           ),
           const SizedBox(height: 8),
-          Text(message),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

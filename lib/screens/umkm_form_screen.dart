@@ -11,6 +11,7 @@ import '../providers/auth_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/umkm_provider.dart';
 import '../utils/app_exception.dart';
+import '../utils/constants.dart';
 import '../utils/validators.dart';
 import '../widgets/app_text_field.dart';
 import '../widgets/map_coordinate_picker.dart';
@@ -119,122 +120,141 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
       body: SafeArea(
         child: Form(
           key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
             children: [
-              PhotoPickerField(
-                selectedFile: _selectedPhoto,
-                photoUrl: _existingPhotoRemoved
-                    ? null
-                    : widget.initialUmkm?.fotoUrl,
-                enabled: !isSubmitting,
-                onChanged: (file) {
-                  setState(() {
-                    _selectedPhoto = file;
-                    if (file != null) _existingPhotoRemoved = false;
-                    _photoErrorText = null;
-                  });
-                },
-                onRemoved: () {
-                  setState(() {
-                    _existingPhotoRemoved = true;
-                    _photoErrorText = null;
-                  });
-                },
-              ),
-              if (_photoErrorText != null) ...[
-                const SizedBox(height: 6),
-                _FieldErrorText(_photoErrorText!),
-              ],
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _namaUsahaController,
-                label: 'Nama Usaha',
-                textInputAction: TextInputAction.next,
-                validator: (value) =>
-                    Validators.requiredText(value, 'Nama usaha'),
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _namaPemilikController,
-                label: 'Nama Pemilik',
-                textInputAction: TextInputAction.next,
-                validator: (value) =>
-                    Validators.requiredText(value, 'Nama pemilik'),
-              ),
-              const SizedBox(height: 12),
-              _CategoryDropdown(
-                categories: provider.categories,
-                selectedId: _selectedKategoriId,
-                isLoading: provider.isLoadingCategories,
-                errorMessage: provider.categoryErrorMessage,
-                enabled: !isSubmitting,
-                onRetry: () =>
-                    context.read<UmkmProvider>().loadCategories(force: true),
-                onChanged: (value) {
-                  setState(() => _selectedKategoriId = value);
-                },
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _alamatJalanController,
-                label: 'Alamat Jalan',
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _deskripsiController,
-                label: 'Deskripsi',
-                minLines: 3,
-                maxLines: 4,
-                textInputAction: TextInputAction.newline,
-              ),
-              const SizedBox(height: 16),
-              WilayahDropdowns(
-                initialProvinceId: widget.initialUmkm?.provinsiId,
-                initialRegencyId: widget.initialUmkm?.kotaId,
-                initialDistrictId: widget.initialUmkm?.kecamatanId,
-                provinceValidator: (value) =>
-                    Validators.requiredSelection(value, 'Provinsi'),
-                regencyValidator: (value) =>
-                    Validators.requiredSelection(value, 'Kota/kabupaten'),
-                districtValidator: (value) =>
-                    Validators.requiredSelection(value, 'Kecamatan'),
-                onChanged: ({province, regency, district}) {
-                  _selectedProvince = province;
-                  _selectedRegency = regency;
-                  _selectedDistrict = district;
-                },
-              ),
-              const SizedBox(height: 16),
-              MapCoordinatePicker(
-                initialLatitude: _initialMapPoint.latitude,
-                initialLongitude: _initialMapPoint.longitude,
-                enabled: !isSubmitting,
-                currentLocationLoader: () =>
-                    context.read<LocationProvider>().loadCurrentPoint(),
-                errorText: _coordinateErrorText,
-                onChanged: (point) {
-                  setState(() {
-                    _userMovedPin = true;
-                    _selectedPoint = point;
-                    _coordinateErrorText = null;
-                  });
-                },
-              ),
-              const SizedBox(height: 24),
-              PrimaryButton(
-                label: _isEditMode ? 'Simpan Perubahan' : 'Simpan UMKM',
-                isLoading: isSubmitting,
-                onPressed: isSubmitting ? null : _submit,
-              ),
-              if (provider.mutationErrorMessage != null && !isSubmitting) ...[
-                const SizedBox(height: 12),
-                _InlineRetry(
-                  message: provider.mutationErrorMessage!,
-                  onRetry: _submit,
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  children: [
+                    _FormSectionCard(
+                      title: 'Foto & Identitas',
+                      children: [
+                        PhotoPickerField(
+                          selectedFile: _selectedPhoto,
+                          photoUrl: _existingPhotoRemoved
+                              ? null
+                              : widget.initialUmkm?.fotoUrl,
+                          enabled: !isSubmitting,
+                          onChanged: (file) {
+                            setState(() {
+                              _selectedPhoto = file;
+                              if (file != null) _existingPhotoRemoved = false;
+                              _photoErrorText = null;
+                            });
+                          },
+                          onRemoved: () {
+                            setState(() {
+                              _existingPhotoRemoved = true;
+                              _photoErrorText = null;
+                            });
+                          },
+                        ),
+                        if (_photoErrorText != null) ...[
+                          const SizedBox(height: 6),
+                          _FieldErrorText(_photoErrorText!),
+                        ],
+                        const SizedBox(height: 12),
+                        AppTextField(
+                          controller: _namaUsahaController,
+                          label: 'Nama Usaha',
+                          textInputAction: TextInputAction.next,
+                          validator: (value) =>
+                              Validators.requiredText(value, 'Nama usaha'),
+                        ),
+                        const SizedBox(height: 12),
+                        AppTextField(
+                          controller: _namaPemilikController,
+                          label: 'Nama Pemilik',
+                          textInputAction: TextInputAction.next,
+                          validator: (value) =>
+                              Validators.requiredText(value, 'Nama pemilik'),
+                        ),
+                        const SizedBox(height: 12),
+                        _CategoryDropdown(
+                          categories: provider.categories,
+                          selectedId: _selectedKategoriId,
+                          isLoading: provider.isLoadingCategories,
+                          errorMessage: provider.categoryErrorMessage,
+                          enabled: !isSubmitting,
+                          onRetry: () => context
+                              .read<UmkmProvider>()
+                              .loadCategories(force: true),
+                          onChanged: (value) {
+                            setState(() => _selectedKategoriId = value);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _FormSectionCard(
+                      title: 'Deskripsi & Alamat',
+                      children: [
+                        AppTextField(
+                          controller: _deskripsiController,
+                          label: 'Deskripsi',
+                          minLines: 3,
+                          maxLines: 4,
+                          textInputAction: TextInputAction.newline,
+                        ),
+                        const SizedBox(height: 12),
+                        AppTextField(
+                          controller: _alamatJalanController,
+                          label: 'Alamat Jalan',
+                          textInputAction: TextInputAction.next,
+                        ),
+                        const SizedBox(height: 12),
+                        WilayahDropdowns(
+                          initialProvinceId: widget.initialUmkm?.provinsiId,
+                          initialRegencyId: widget.initialUmkm?.kotaId,
+                          initialDistrictId: widget.initialUmkm?.kecamatanId,
+                          provinceValidator: (value) =>
+                              Validators.requiredSelection(value, 'Provinsi'),
+                          regencyValidator: (value) =>
+                              Validators.requiredSelection(
+                                value,
+                                'Kota/kabupaten',
+                              ),
+                          districtValidator: (value) =>
+                              Validators.requiredSelection(value, 'Kecamatan'),
+                          onChanged: ({province, regency, district}) {
+                            _selectedProvince = province;
+                            _selectedRegency = regency;
+                            _selectedDistrict = district;
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _FormSectionCard(
+                      title: 'Lokasi di Peta',
+                      children: [
+                        MapCoordinatePicker(
+                          initialLatitude: _initialMapPoint.latitude,
+                          initialLongitude: _initialMapPoint.longitude,
+                          enabled: !isSubmitting,
+                          currentLocationLoader: () => context
+                              .read<LocationProvider>()
+                              .loadCurrentPoint(),
+                          errorText: _coordinateErrorText,
+                          onChanged: (point) {
+                            setState(() {
+                              _userMovedPin = true;
+                              _selectedPoint = point;
+                              _coordinateErrorText = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
+              _SubmitBar(
+                isSubmitting: isSubmitting,
+                label: _isEditMode ? 'Simpan Perubahan' : 'Simpan UMKM',
+                errorMessage: provider.mutationErrorMessage,
+                onSubmit: _submit,
+              ),
             ],
           ),
         ),
@@ -315,9 +335,29 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('UMKM Tersimpan'),
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Theme.of(dialogContext).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle_outline,
+                  size: 28,
+                  color: Theme.of(dialogContext).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('UMKM Tersimpan'),
+            ],
+          ),
           content: Text(
             _successMessage(initialUmkm: initialUmkm, saved: saved),
+            textAlign: TextAlign.center,
           ),
           actions: [
             TextButton(
@@ -376,6 +416,84 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
   }
 }
 
+class _FormSectionCard extends StatelessWidget {
+  const _FormSectionCard({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: const Color(AppColors.textPrimary),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SubmitBar extends StatelessWidget {
+  const _SubmitBar({
+    required this.isSubmitting,
+    required this.label,
+    required this.errorMessage,
+    required this.onSubmit,
+  });
+
+  final bool isSubmitting;
+  final String label;
+  final String? errorMessage;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(AppColors.surface),
+        border: Border(top: BorderSide(color: Color(AppColors.hairline))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (errorMessage != null && !isSubmitting) ...[
+                _InlineRetry(message: errorMessage!, onRetry: onSubmit),
+                const SizedBox(height: 12),
+              ],
+              PrimaryButton(
+                label: label,
+                isLoading: isSubmitting,
+                onPressed: isSubmitting ? null : onSubmit,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CategoryDropdown extends StatelessWidget {
   const _CategoryDropdown({
     required this.categories,
@@ -408,10 +526,7 @@ class _CategoryDropdown extends StatelessWidget {
     return DropdownButtonFormField<int>(
       initialValue: _hasSelectedCategory ? selectedId : null,
       isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Kategori',
-        border: OutlineInputBorder(),
-      ),
+      decoration: const InputDecoration(labelText: 'Kategori'),
       hint: const Text('Pilih kategori'),
       validator: (value) => Validators.requiredSelection(value, 'Kategori'),
       items: categories
@@ -440,10 +555,7 @@ class _LoadingField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       child: const Row(
         children: [
           SizedBox.square(
@@ -470,8 +582,8 @@ class _InlineRetry extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.error),
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(AppColors.statusRejectedFill),
+        borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),

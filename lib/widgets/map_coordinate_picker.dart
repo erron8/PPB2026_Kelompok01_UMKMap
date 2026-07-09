@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/geocoding_service.dart';
 import '../utils/app_exception.dart';
+import '../utils/constants.dart';
 
 typedef CurrentLocationLoader = Future<LatLng> Function();
 
@@ -98,6 +99,7 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
               '${_selectedPoint!.longitude.toStringAsFixed(6)}';
     final hasError = widget.errorText != null;
     final canUseCurrentLocation = widget.currentLocationLoader != null;
+    final markerColor = Color(AppColors.markerPalette.first);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -122,25 +124,35 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
                 onSubmitted: widget.enabled && !_isSearching
                     ? (_) => _searchAddress()
                     : null,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Cari alamat lengkap',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search, color: colorScheme.primary),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: widget.enabled && !_isSearching
-                  ? _searchAddress
-                  : null,
-              icon: _isSearching
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.search),
-              label: const Text('Cari'),
+            SizedBox(
+              height: 48,
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.primaryContainer,
+                  foregroundColor: colorScheme.primary,
+                  shape: const StadiumBorder(),
+                ),
+                onPressed: widget.enabled && !_isSearching
+                    ? _searchAddress
+                    : null,
+                icon: _isSearching
+                    ? SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
+                        ),
+                      )
+                    : const Icon(Icons.search),
+                label: const Text('Cari'),
+              ),
             ),
           ],
         ),
@@ -163,13 +175,11 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
         const SizedBox(height: 8),
         DecoratedBox(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: hasError ? colorScheme.error : colorScheme.outline,
-            ),
-            borderRadius: BorderRadius.circular(8),
+            border: hasError ? Border.all(color: colorScheme.error) : null,
+            borderRadius: BorderRadius.circular(AppRadii.radiusCard),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(7),
+            borderRadius: BorderRadius.circular(AppRadii.radiusCard),
             child: SizedBox(
               height: 220,
               child: Stack(
@@ -200,12 +210,45 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
                     ],
                   ),
                   IgnorePointer(
-                    child: Icon(
-                      Icons.location_on,
-                      size: 44,
-                      color: colorScheme.secondary,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 48,
+                          color: Color(AppColors.surface),
+                        ),
+                        Icon(Icons.location_on, size: 44, color: markerColor),
+                      ],
                     ),
                   ),
+                  if (canUseCurrentLocation)
+                    Positioned(
+                      left: 12,
+                      right: 12,
+                      bottom: 12,
+                      child: FilledButton.tonalIcon(
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(44),
+                          backgroundColor: colorScheme.primaryContainer,
+                          foregroundColor: colorScheme.primary,
+                          shape: const StadiumBorder(),
+                        ),
+                        onPressed: widget.enabled && !_isLoadingLocation
+                            ? _useCurrentLocation
+                            : null,
+                        icon: _isLoadingLocation
+                            ? SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : const Icon(Icons.my_location),
+                        label: const Text('Gunakan Lokasi Saya'),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -223,21 +266,6 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
                 ),
               ),
             ),
-            if (canUseCurrentLocation) ...[
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: widget.enabled && !_isLoadingLocation
-                    ? _useCurrentLocation
-                    : null,
-                icon: _isLoadingLocation
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.my_location),
-                label: const Text('Gunakan Lokasi Saya'),
-              ),
-            ],
           ],
         ),
         if (widget.errorText != null) ...[
@@ -382,26 +410,34 @@ class _GeocodeResultList extends StatelessWidget {
       color: colorScheme.surface,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
       ),
-      child: Column(
-        children: [
-          for (var index = 0; index < results.length; index++) ...[
-            ListTile(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 200),
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          itemCount: results.length,
+          separatorBuilder: (_, _) =>
+              const Divider(height: 1, color: Color(AppColors.hairline)),
+          itemBuilder: (context, index) {
+            return ListTile(
               dense: true,
               enabled: enabled,
-              leading: const Icon(Icons.place_outlined),
+              leading: Icon(
+                Icons.place_outlined,
+                color: colorScheme.primary,
+                size: 16,
+              ),
               title: Text(
                 results[index].displayName,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               onTap: enabled ? () => onSelected(results[index]) : null,
-            ),
-            if (index < results.length - 1) const Divider(height: 1),
-          ],
-        ],
+            );
+          },
+        ),
       ),
     );
   }

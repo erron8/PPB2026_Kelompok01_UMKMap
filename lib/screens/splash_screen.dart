@@ -7,21 +7,36 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      backgroundColor: colorScheme.secondary,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.storefront, size: 72, color: Color(AppColors.primary)),
-            SizedBox(height: 16),
+            Icon(Icons.storefront, size: 80, color: colorScheme.primary),
+            const SizedBox(height: 16),
             Text(
               AppConfig.appName,
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontSize: 30,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            SizedBox(height: 8),
-            Text('Pendataan UMKM berbasis peta'),
-            SizedBox(height: 24),
-            CircularProgressIndicator(),
+            const SizedBox(height: 8),
+            Text(
+              'Pendataan UMKM berbasis peta',
+              style: TextStyle(
+                color: const Color(
+                  AppColors.onSecondary,
+                ).withValues(alpha: 0.75),
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+            CircularProgressIndicator(color: colorScheme.primary),
           ],
         ),
       ),

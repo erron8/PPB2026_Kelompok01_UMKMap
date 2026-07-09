@@ -27,7 +27,7 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField), 'Jl. Sudirman Denpasar');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Cari'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Cari'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Jalan Sudirman, Denpasar'));

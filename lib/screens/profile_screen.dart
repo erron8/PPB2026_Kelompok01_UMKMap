@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../utils/constants.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -17,53 +18,80 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: EdgeInsets.zero,
         children: [
-          Center(
-            child: CircleAvatar(
-              radius: 42,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Icon(
-                Icons.person,
-                size: 46,
-                color: theme.colorScheme.onPrimaryContainer,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondary,
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(AppRadii.radiusSheet),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            user?.fullName ?? 'Pengguna',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(user?.email ?? '-', textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          Center(
-            child: Chip(
-              avatar: Icon(
-                user?.isAdmin == true
-                    ? Icons.admin_panel_settings_outlined
-                    : Icons.storefront_outlined,
-                size: 18,
-              ),
-              label: Text(roleLabel),
+            child: Column(
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: const BoxDecoration(
+                    color: Color(AppColors.surface),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.person,
+                    size: 44,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  user?.fullName ?? 'Pengguna',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.onSecondary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.email ?? '-',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: const Color(AppColors.onPrimaryContainer),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _ProfileRoleChip(
+                  roleLabel: roleLabel,
+                  isAdmin: user?.isAdmin == true,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
-          _UserInfoTile(roleLabel: roleLabel, email: user?.email),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: auth.isLoading
-                ? null
-                : () async {
-                    await context.read<AuthProvider>().logout();
-                    if (context.mounted) context.go('/login');
-                  },
-            icon: const Icon(Icons.logout),
-            label: const Text('Keluar'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _UserInfoTile(roleLabel: roleLabel, email: user?.email),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+                shape: const StadiumBorder(),
+              ),
+              onPressed: auth.isLoading
+                  ? null
+                  : () async {
+                      await context.read<AuthProvider>().logout();
+                      if (context.mounted) context.go('/login');
+                    },
+              icon: const Icon(Icons.logout),
+              label: const Text('Keluar'),
+            ),
           ),
         ],
       ),
@@ -80,6 +108,48 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
+class _ProfileRoleChip extends StatelessWidget {
+  const _ProfileRoleChip({required this.roleLabel, required this.isAdmin});
+
+  final String roleLabel;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: const ShapeDecoration(
+        color: Color(AppColors.surface),
+        shape: StadiumBorder(),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isAdmin
+                  ? Icons.admin_panel_settings_outlined
+                  : Icons.storefront_outlined,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              roleLabel,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _UserInfoTile extends StatelessWidget {
   const _UserInfoTile({required this.roleLabel, required this.email});
 
@@ -91,12 +161,7 @@ class _UserInfoTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 0,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -104,22 +169,40 @@ class _UserInfoTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.account_circle_outlined,
-                  color: theme.colorScheme.primary,
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.account_circle_outlined,
+                    color: theme.colorScheme.primary,
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Informasi Pengguna',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            _UserInfoRow(label: 'Role', value: roleLabel),
-            _UserInfoRow(label: 'Email', value: email),
+            _UserInfoRow(
+              icon: Icons.badge_outlined,
+              label: 'Role',
+              value: roleLabel,
+            ),
+            const Divider(height: 1, color: Color(AppColors.hairline)),
+            _UserInfoRow(
+              icon: Icons.mail_outline,
+              label: 'Email',
+              value: email,
+            ),
           ],
         ),
       ),
@@ -128,8 +211,13 @@ class _UserInfoTile extends StatelessWidget {
 }
 
 class _UserInfoRow extends StatelessWidget {
-  const _UserInfoRow({required this.label, required this.value});
+  const _UserInfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
+  final IconData icon;
   final String label;
   final String? value;
 
@@ -138,25 +226,38 @@ class _UserInfoRow extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 72,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
-                fontWeight: FontWeight.w700,
-              ),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              shape: BoxShape.circle,
             ),
+            child: Icon(icon, size: 18, color: theme.colorScheme.primary),
           ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              value == null || value!.isEmpty ? '-' : value!,
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.end,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(AppColors.textSubtle),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value == null || value!.isEmpty ? '-' : value!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

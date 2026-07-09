@@ -42,6 +42,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       body: SafeArea(
@@ -55,19 +57,39 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(
-                      Icons.storefront,
-                      size: 72,
-                      color: Color(AppColors.primary),
+                    Center(
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.storefront,
+                          size: 36,
+                          color: colorScheme.primary,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'UMKMap',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Masuk untuk mengelola UMKM Anda',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(AppColors.textMuted),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     AppTextField(
                       controller: _emailController,
                       label: 'Email',
@@ -94,6 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           _obscurePassword
                               ? Icons.visibility
                               : Icons.visibility_off,
+                          color: const Color(AppColors.oliveGrey),
                         ),
                       ),
                       validator: (value) {
@@ -131,21 +154,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       isLoading: auth.isLoading,
                       onPressed: _submit,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.tonal(
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          backgroundColor: colorScheme.primaryContainer,
+                          foregroundColor: colorScheme.onPrimaryContainer,
+                          shape: const StadiumBorder(),
+                        ),
+                        onPressed: auth.isLoading
+                            ? null
+                            : () {
+                                context.read<AuthProvider>().continueAsGuest();
+                                context.go('/dashboard');
+                              },
+                        child: const Text('Lanjut sebagai tamu'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     TextButton(
                       onPressed: auth.isLoading
                           ? null
                           : () => context.go('/register'),
                       child: const Text('Daftar'),
-                    ),
-                    TextButton(
-                      onPressed: auth.isLoading
-                          ? null
-                          : () {
-                              context.read<AuthProvider>().continueAsGuest();
-                              context.go('/dashboard');
-                            },
-                      child: const Text('Lanjut sebagai tamu'),
                     ),
                   ],
                 ),
@@ -171,24 +204,24 @@ class _AuthErrorMessage extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: isOffline ? colorScheme.errorContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        color: isOffline
+            ? const Color(AppColors.statusRejectedFill)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
       ),
       child: Padding(
         padding: EdgeInsets.all(isOffline ? 12 : 0),
         child: Row(
           children: [
             if (isOffline) ...[
-              Icon(Icons.wifi_off, color: colorScheme.onErrorContainer),
+              Icon(Icons.wifi_off, color: colorScheme.error),
               const SizedBox(width: 10),
             ],
             Expanded(
               child: Text(
                 message,
                 style: TextStyle(
-                  color: isOffline
-                      ? colorScheme.onErrorContainer
-                      : colorScheme.error,
+                  color: isOffline ? colorScheme.error : colorScheme.error,
                 ),
               ),
             ),
