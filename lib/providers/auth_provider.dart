@@ -93,13 +93,14 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       await _authService.signOut();
-      errorMessage = null;
-    } on AppException catch (error) {
-      errorMessage = error.message;
+    } on AppException {
+      // Local logout always succeeds via the finally block, so a failed
+      // network signOut must not leak an error onto the login screen.
     } finally {
       await _sessionService.clear();
       user = null;
       status = AuthStatus.guest;
+      errorMessage = null;
       _setLoading(false);
     }
   }
