@@ -11,10 +11,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:umkmap/models/kategori.dart';
 import 'package:umkmap/models/app_user.dart';
+import 'package:umkmap/models/umkm.dart';
 import 'package:umkmap/providers/auth_provider.dart';
+import 'package:umkmap/providers/umkm_provider.dart';
 import 'package:umkmap/services/auth_service.dart';
 import 'package:umkmap/services/session_service.dart';
+import 'package:umkmap/services/umkm_service.dart';
 import 'package:umkmap/utils/app_exception.dart';
 import 'package:umkmap/utils/app_router.dart';
 
@@ -34,7 +38,10 @@ class _FakeAuthService implements AuthService {
   final AppUser? restoreUser;
 
   @override
-  Future<AppUser> signIn({required String email, required String password}) async {
+  Future<AppUser> signIn({
+    required String email,
+    required String password,
+  }) async {
     final result = signInResult;
     if (result == null) throw const AppException('Email atau kata sandi salah');
     return result;
@@ -60,8 +67,13 @@ Future<GoRouter> _pumpRouterApp(
 ) async {
   final router = createAppRouter(provider);
   await tester.pumpWidget(
-    ChangeNotifierProvider<AuthProvider>.value(
-      value: provider,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthProvider>.value(value: provider),
+        ChangeNotifierProvider<UmkmProvider>(
+          create: (_) => UmkmProvider(service: const _EmptyUmkmService()),
+        ),
+      ],
       child: MaterialApp.router(routerConfig: router),
     ),
   );
@@ -87,41 +99,47 @@ void main() {
     expect(await session.load(), isNotNull); // survived to prefs
   });
 
-  test('T-01b: fresh provider restores persisted session (app restart)', () async {
-    const session = SessionService();
-    // First run: log in and persist.
-    await AuthProvider(
-      authService: _FakeAuthService(signInResult: _user),
-      sessionService: session,
-    ).login('e', 'p', rememberMe: true);
+  test(
+    'T-01b: fresh provider restores persisted session (app restart)',
+    () async {
+      const session = SessionService();
+      // First run: log in and persist.
+      await AuthProvider(
+        authService: _FakeAuthService(signInResult: _user),
+        sessionService: session,
+      ).login('e', 'p', rememberMe: true);
 
-    // Second run: new provider, Supabase session still valid.
-    final restarted = AuthProvider(
-      authService: _FakeAuthService(restoreUser: _user),
-      sessionService: session,
-    );
-    await restarted.restoreSession();
+      // Second run: new provider, Supabase session still valid.
+      final restarted = AuthProvider(
+        authService: _FakeAuthService(restoreUser: _user),
+        sessionService: session,
+      );
+      await restarted.restoreSession();
 
-    expect(restarted.status, AuthStatus.authenticated);
-    expect(restarted.user?.id, 'u-1');
-  });
+      expect(restarted.status, AuthStatus.authenticated);
+      expect(restarted.user?.id, 'u-1');
+    },
+  );
 
-  test('rememberMe=false does not persist → restart falls back to guest', () async {
-    const session = SessionService();
-    await AuthProvider(
-      authService: _FakeAuthService(signInResult: _user),
-      sessionService: session,
-    ).login('e', 'p', rememberMe: false);
+  test(
+    'rememberMe=false does not persist → restart falls back to guest',
+    () async {
+      const session = SessionService();
+      await AuthProvider(
+        authService: _FakeAuthService(signInResult: _user),
+        sessionService: session,
+      ).login('e', 'p', rememberMe: false);
 
-    expect(await session.load(), isNull);
+      expect(await session.load(), isNull);
 
-    final restarted = AuthProvider(
-      authService: _FakeAuthService(restoreUser: _user),
-      sessionService: session,
-    );
-    await restarted.restoreSession();
-    expect(restarted.status, AuthStatus.guest);
-  });
+      final restarted = AuthProvider(
+        authService: _FakeAuthService(restoreUser: _user),
+        sessionService: session,
+      );
+      await restarted.restoreSession();
+      expect(restarted.status, AuthStatus.guest);
+    },
+  );
 
   test('T-02: wrong password → login false, inline error message', () async {
     final provider = AuthProvider(
@@ -184,7 +202,7 @@ void main() {
 
     router.go('/umkm/123');
     await tester.pumpAndSettle();
-    expect(find.text('Detail UMKM: 123'), findsOneWidget);
+    expect(find.text('Detail UMKM'), findsOneWidget);
 
     for (final protectedRoute in ['/dashboard', '/profile', '/umkm-form']) {
       router.go(protectedRoute);
@@ -212,4 +230,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Dashboard'), findsOneWidget);
   });
+}
+
+class _EmptyUmkmService implements UmkmService {
+  const _EmptyUmkmService();
+
+  @override
+  Future<List<Kategori>> fetchKategori() async => const [];
+
+  @override
+  Future<List<Umkm>> fetchList({
+    String? search,
+    int? kategoriId,
+    String? kotaId,
+    String? ownerId,
+    String? status,
+    int page = 0,
+    int pageSize = 20,
+  }) async {
+    return const [];
+  }
+
+  @override
+  Future<Umkm?> fetchById(String id) async => null;
+
+  @override
+  Future<DashboardStats> dashboardStats({String? ownerId}) async {
+    return const DashboardStats(total: 0, verified: 0, pending: 0, rejected: 0);
+  }
 }

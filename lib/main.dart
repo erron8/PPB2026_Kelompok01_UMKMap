@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'database/supabase_client.dart';
 import 'providers/auth_provider.dart';
+import 'providers/umkm_provider.dart';
 import 'utils/app_router.dart';
 import 'utils/constants.dart';
 
@@ -17,8 +18,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider()..restoreSession(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()..restoreSession()),
+        ChangeNotifierProvider(create: (_) => UmkmProvider()),
+      ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
           return MaterialApp.router(
