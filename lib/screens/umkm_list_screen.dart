@@ -109,12 +109,22 @@ class _UmkmListScreenState extends State<UmkmListScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => _RegionFilterSheet(initialKotaId: provider.kotaId),
+      builder: (context) => _RegionFilterSheet(
+        initialProvinsiId: provider.provinsiId,
+        initialProvinsiNama: provider.provinsiNama,
+        initialKotaId: provider.kotaId,
+        initialKotaNama: provider.kotaNama,
+      ),
     );
 
     if (!mounted || selected == null) return;
     provider
-      ..setKotaFilter(id: selected.id, nama: selected.name)
+      ..setKotaFilter(
+        id: selected.id,
+        nama: selected.name,
+        provinsiId: selected.provinceId,
+        provinsiNama: selected.provinceName,
+      )
       ..loadFirstPage();
   }
 
@@ -407,16 +417,45 @@ class _ListFooter extends StatelessWidget {
 }
 
 class _RegionFilterSheet extends StatefulWidget {
-  const _RegionFilterSheet({this.initialKotaId});
+  const _RegionFilterSheet({
+    this.initialProvinsiId,
+    this.initialProvinsiNama,
+    this.initialKotaId,
+    this.initialKotaNama,
+  });
 
+  final String? initialProvinsiId;
+  final String? initialProvinsiNama;
   final String? initialKotaId;
+  final String? initialKotaNama;
 
   @override
   State<_RegionFilterSheet> createState() => _RegionFilterSheetState();
 }
 
 class _RegionFilterSheetState extends State<_RegionFilterSheet> {
+  Wilayah? _selectedProvince;
   Wilayah? _selectedRegency;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final initialKotaId = widget.initialKotaId;
+    final initialProvinsiId = _initialProvinceId;
+    if (initialProvinsiId != null && initialProvinsiId.isNotEmpty) {
+      _selectedProvince = Wilayah(
+        id: initialProvinsiId,
+        name: widget.initialProvinsiNama ?? initialProvinsiId,
+      );
+    }
+    if (initialKotaId != null && initialKotaId.isNotEmpty) {
+      _selectedRegency = Wilayah(
+        id: initialKotaId,
+        name: widget.initialKotaNama ?? initialKotaId,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -431,9 +470,13 @@ class _RegionFilterSheetState extends State<_RegionFilterSheet> {
           Text('Filter Wilayah', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           WilayahDropdowns(
+            initialProvinceId: _initialProvinceId,
             initialRegencyId: widget.initialKotaId,
             onChanged: ({province, regency, district}) {
-              setState(() => _selectedRegency = regency);
+              setState(() {
+                _selectedProvince = province;
+                _selectedRegency = regency;
+              });
             },
           ),
           const SizedBox(height: 16),
@@ -453,6 +496,8 @@ class _RegionFilterSheetState extends State<_RegionFilterSheet> {
                         _RegionSelection(
                           id: _selectedRegency!.id,
                           name: _selectedRegency!.name,
+                          provinceId: _selectedProvince?.id,
+                          provinceName: _selectedProvince?.name,
                         ),
                       ),
                 icon: const Icon(Icons.check),
@@ -464,11 +509,27 @@ class _RegionFilterSheetState extends State<_RegionFilterSheet> {
       ),
     );
   }
+
+  String? get _initialProvinceId {
+    final explicitId = widget.initialProvinsiId;
+    if (explicitId != null && explicitId.isNotEmpty) return explicitId;
+
+    final regencyId = widget.initialKotaId;
+    if (regencyId == null || regencyId.length < 2) return null;
+    return regencyId.substring(0, 2);
+  }
 }
 
 class _RegionSelection {
-  const _RegionSelection({required this.id, required this.name});
+  const _RegionSelection({
+    required this.id,
+    required this.name,
+    this.provinceId,
+    this.provinceName,
+  });
 
   final String? id;
   final String? name;
+  final String? provinceId;
+  final String? provinceName;
 }

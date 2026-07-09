@@ -34,7 +34,12 @@ void main() {
     final provider = UmkmProvider(service: service)
       ..setSearchQuery('Warung')
       ..setKategoriFilter(1)
-      ..setKotaFilter(id: '7371', nama: 'KOTA MAKASSAR')
+      ..setKotaFilter(
+        id: '7371',
+        nama: 'KOTA MAKASSAR',
+        provinsiId: '73',
+        provinsiNama: 'SULAWESI SELATAN',
+      )
       ..setOwnerFilter('owner-1')
       ..setVerifiedOnly(false);
 
@@ -46,6 +51,28 @@ void main() {
     expect(call.kotaId, '7371');
     expect(call.ownerId, 'owner-1');
     expect(call.status, isNull);
+  });
+
+  test('setKotaFilter keeps province state for region preselection', () {
+    final provider = UmkmProvider(service: _FakeUmkmService(pages: [const []]))
+      ..setKotaFilter(
+        id: '7371',
+        nama: 'KOTA MAKASSAR',
+        provinsiId: '73',
+        provinsiNama: 'SULAWESI SELATAN',
+      );
+
+    expect(provider.provinsiId, '73');
+    expect(provider.provinsiNama, 'SULAWESI SELATAN');
+    expect(provider.kotaId, '7371');
+    expect(provider.kotaNama, 'KOTA MAKASSAR');
+
+    provider.setKotaFilter();
+
+    expect(provider.provinsiId, isNull);
+    expect(provider.provinsiNama, isNull);
+    expect(provider.kotaId, isNull);
+    expect(provider.kotaNama, isNull);
   });
 
   test('loadById reports inaccessible rows as detail error', () async {

@@ -32,6 +32,8 @@ class UmkmProvider extends ChangeNotifier {
 
   String searchQuery = '';
   int? kategoriId;
+  String? provinsiId;
+  String? provinsiNama;
   String? kotaId;
   String? kotaNama;
   String? ownerId;
@@ -180,8 +182,20 @@ class UmkmProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setKotaFilter({String? id, String? nama}) {
-    if (kotaId == id && kotaNama == nama) return;
+  void setKotaFilter({
+    String? id,
+    String? nama,
+    String? provinsiId,
+    String? provinsiNama,
+  }) {
+    if (kotaId == id &&
+        kotaNama == nama &&
+        this.provinsiId == provinsiId &&
+        this.provinsiNama == provinsiNama) {
+      return;
+    }
+    this.provinsiId = id == null ? null : provinsiId;
+    this.provinsiNama = id == null ? null : provinsiNama;
     kotaId = id;
     kotaNama = nama;
     notifyListeners();

@@ -173,8 +173,8 @@ class UmkmService {
         query = query.eq('status', status);
       }
 
-      final data = await query;
-      return (data as List<dynamic>).length;
+      final response = await query.limit(0).count(CountOption.exact);
+      return response.count as int;
     } on PostgrestException catch (error) {
       throw AppException(error.message);
     }
