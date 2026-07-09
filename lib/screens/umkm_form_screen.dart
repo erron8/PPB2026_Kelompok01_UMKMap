@@ -308,8 +308,39 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
       return;
     }
 
-    _showSnackBar(_successMessage(initialUmkm: initialUmkm, saved: saved));
-    context.go('/umkm/${saved.id}');
+    final router = GoRouter.of(context);
+    final bool? goToDetail;
+    if (initialUmkm == null) {
+      goToDetail = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('UMKM Tersimpan'),
+          content: Text(
+            _successMessage(initialUmkm: initialUmkm, saved: saved),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Kembali ke Beranda'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Lihat Detail'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+    } else {
+      _showSnackBar(_successMessage(initialUmkm: initialUmkm, saved: saved));
+      goToDetail = true;
+    }
+
+    router.go('/dashboard');
+    if (goToDetail == true) {
+      router.push('/umkm/${saved.id}');
+    }
   }
 
   String _successMessage({required Umkm? initialUmkm, required Umkm saved}) {
