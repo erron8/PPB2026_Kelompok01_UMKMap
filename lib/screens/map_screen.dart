@@ -11,6 +11,7 @@ import '../providers/location_provider.dart';
 import '../providers/umkm_provider.dart';
 import '../services/location_service.dart';
 import '../utils/formatters.dart';
+import '../utils/constants.dart';
 import '../widgets/map_coordinate_picker.dart';
 
 class MapScreen extends StatefulWidget {
@@ -249,15 +250,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Color _categoryColor(BuildContext context, int kategoriId) {
-    final colors = <Color>[
-      Theme.of(context).colorScheme.secondary,
-      const Color(0xFF2E7D32),
-      const Color(0xFF1565C0),
-      const Color(0xFF6A1B9A),
-      const Color(0xFFEF6C00),
-      const Color(0xFF00838F),
-    ];
-    return colors[(kategoriId - 1).abs() % colors.length];
+    final colors = AppColors.markerPalette;
+    return Color(colors[(kategoriId - 1).abs() % colors.length]);
   }
 }
 

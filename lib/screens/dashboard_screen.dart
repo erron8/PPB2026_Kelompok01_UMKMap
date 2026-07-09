@@ -6,6 +6,7 @@ import '../models/umkm.dart';
 import '../providers/auth_provider.dart';
 import '../providers/umkm_provider.dart';
 import '../services/umkm_service.dart';
+import '../utils/constants.dart';
 import '../widgets/login_required_dialog.dart';
 import '../widgets/status_chip.dart';
 
@@ -198,19 +199,19 @@ class _StatsSection extends StatelessWidget {
           label: 'Terverifikasi',
           value: value.verified,
           icon: Icons.verified,
-          color: const Color(0xFF2E7D32),
+          color: const Color(AppColors.statusVerifiedText),
         ),
         _StatCard(
           label: 'Menunggu',
           value: value.pending,
           icon: Icons.schedule,
-          color: const Color(0xFFB26A00),
+          color: const Color(AppColors.statusPendingText),
         ),
         _StatCard(
           label: 'Ditolak',
           value: value.rejected,
           icon: Icons.cancel,
-          color: const Color(0xFFC62828),
+          color: const Color(AppColors.statusRejectedText),
         ),
       ],
     );

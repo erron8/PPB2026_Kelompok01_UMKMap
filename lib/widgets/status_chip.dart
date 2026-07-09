@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/constants.dart';
+
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status, this.compact = false});
 
@@ -11,23 +13,39 @@ class StatusChip extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final config = _StatusConfig.fromStatus(status, colorScheme);
 
-    return Chip(
-      visualDensity: compact ? VisualDensity.compact : null,
-      materialTapTargetSize: compact
-          ? MaterialTapTargetSize.shrinkWrap
-          : MaterialTapTargetSize.padded,
-      avatar: Icon(config.icon, size: compact ? 16 : 18, color: config.color),
-      label: Text(config.label),
-      labelStyle: TextStyle(
-        color: config.color,
-        fontSize: compact ? 12 : null,
-        fontWeight: FontWeight.w600,
+    return DecoratedBox(
+      decoration: ShapeDecoration(
+        color: config.fill,
+        shape: const StadiumBorder(),
       ),
-      side: BorderSide(color: config.color.withValues(alpha: 0.38)),
-      backgroundColor: config.color.withValues(alpha: 0.10),
-      padding: compact
-          ? const EdgeInsets.symmetric(horizontal: 6)
-          : const EdgeInsets.symmetric(horizontal: 8),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 10,
+          vertical: compact ? 5 : 6,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: config.color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              config.label,
+              style: TextStyle(
+                color: config.color,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -36,38 +54,38 @@ class _StatusConfig {
   const _StatusConfig({
     required this.label,
     required this.color,
-    required this.icon,
+    required this.fill,
   });
 
   final String label;
   final Color color;
-  final IconData icon;
+  final Color fill;
 
   factory _StatusConfig.fromStatus(String status, ColorScheme colorScheme) {
     switch (status) {
       case 'verified':
         return const _StatusConfig(
           label: 'Terverifikasi',
-          color: Color(0xFF2E7D32),
-          icon: Icons.verified,
+          color: Color(AppColors.statusVerifiedText),
+          fill: Color(AppColors.statusVerifiedFill),
         );
       case 'rejected':
         return const _StatusConfig(
           label: 'Ditolak',
-          color: Color(0xFFC62828),
-          icon: Icons.cancel,
+          color: Color(AppColors.statusRejectedText),
+          fill: Color(AppColors.statusRejectedFill),
         );
       case 'pending':
         return const _StatusConfig(
           label: 'Menunggu Verifikasi',
-          color: Color(0xFFB26A00),
-          icon: Icons.schedule,
+          color: Color(AppColors.statusPendingText),
+          fill: Color(AppColors.statusPendingFill),
         );
       default:
         return _StatusConfig(
           label: status.isEmpty ? 'Status tidak diketahui' : status,
           color: colorScheme.outline,
-          icon: Icons.help_outline,
+          fill: colorScheme.surfaceContainerHighest,
         );
     }
   }

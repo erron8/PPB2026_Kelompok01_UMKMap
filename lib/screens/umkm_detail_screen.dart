@@ -13,6 +13,7 @@ import '../providers/umkm_provider.dart';
 import '../services/compass_service.dart';
 import '../services/location_service.dart';
 import '../utils/formatters.dart';
+import '../utils/constants.dart';
 import '../widgets/compass_arrow.dart';
 import '../widgets/loading_and_error.dart';
 import '../widgets/status_chip.dart';
@@ -520,7 +521,9 @@ class _CompassNavigationSheetState extends State<_CompassNavigationSheet> {
                   : _formatDistance(distance),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: arrived ? Colors.green.shade700 : null,
+                color: arrived
+                    ? const Color(AppColors.statusVerifiedText)
+                    : null,
               ),
             ),
             const SizedBox(height: 8),

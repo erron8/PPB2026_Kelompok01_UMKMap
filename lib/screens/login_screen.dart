@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../utils/app_exception.dart';
+import '../utils/constants.dart';
 import '../widgets/app_text_field.dart';
 import '../widgets/primary_button.dart';
 
@@ -57,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Icon(
                       Icons.storefront,
                       size: 72,
-                      color: Color(0xFF00796B),
+                      color: Color(AppColors.primary),
                     ),
                     const SizedBox(height: 16),
                     Text(

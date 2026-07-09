@@ -19,9 +19,12 @@ class PrimaryButton extends StatelessWidget {
       child: FilledButton(
         onPressed: isLoading ? null : onPressed,
         child: isLoading
-            ? const SizedBox.square(
+            ? SizedBox.square(
                 dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
               )
             : Text(label),
       ),
