@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:umkmap/main.dart';
 import 'package:umkmap/models/kategori.dart';
 import 'package:umkmap/models/app_user.dart';
 import 'package:umkmap/models/umkm.dart';
@@ -188,6 +189,20 @@ void main() {
     expect(provider.status, AuthStatus.guest);
     expect(provider.isGuest, isTrue);
     expect(provider.user, isNull);
+  });
+
+  testWidgets('guest button lands on dashboard and stays there', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Lanjut sebagai tamu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Halo, Tamu'), findsOneWidget);
+    expect(find.text('Anda masuk sebagai tamu.'), findsOneWidget);
   });
 
   testWidgets('guest router guard allows public dashboard/list/map/detail', (

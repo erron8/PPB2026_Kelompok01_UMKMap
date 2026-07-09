@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'database/supabase_client.dart';
@@ -19,6 +20,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()..restoreSession()),
+        ChangeNotifierProvider(create: (_) => UmkmProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
+      ],
+      child: const _UmkmapApp(),
+    );
+  }
+}
+
+class _UmkmapApp extends StatefulWidget {
+  const _UmkmapApp();
+
+  @override
+  State<_UmkmapApp> createState() => _UmkmapAppState();
+}
+
+class _UmkmapAppState extends State<_UmkmapApp> {
+  late final GoRouter _router = createAppRouter(context.read<AuthProvider>());
+
+  @override
+  Widget build(BuildContext context) {
     const primary = Color(AppColors.primary);
     const secondary = Color(AppColors.secondary);
     const background = Color(AppColors.background);
@@ -30,41 +54,28 @@ class MyApp extends StatelessWidget {
       surface: Colors.white,
     );
 
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()..restoreSession()),
-        ChangeNotifierProvider(create: (_) => UmkmProvider()),
-        ChangeNotifierProvider(create: (_) => LocationProvider()),
-      ],
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          return MaterialApp.router(
-            title: AppConfig.appName,
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: colorScheme,
-              scaffoldBackgroundColor: background,
-              appBarTheme: const AppBarTheme(
-                backgroundColor: background,
-                foregroundColor: Colors.black87,
-                centerTitle: false,
-              ),
-              cardTheme: CardThemeData(
-                color: colorScheme.surface,
-                surfaceTintColor: Colors.transparent,
-              ),
-              snackBarTheme: SnackBarThemeData(
-                backgroundColor: colorScheme.inverseSurface,
-                contentTextStyle: TextStyle(
-                  color: colorScheme.onInverseSurface,
-                ),
-              ),
-              useMaterial3: true,
-            ),
-            routerConfig: createAppRouter(authProvider),
-          );
-        },
+    return MaterialApp.router(
+      title: AppConfig.appName,
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: colorScheme,
+        scaffoldBackgroundColor: background,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: background,
+          foregroundColor: Colors.black87,
+          centerTitle: false,
+        ),
+        cardTheme: CardThemeData(
+          color: colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: colorScheme.inverseSurface,
+          contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
+        ),
+        useMaterial3: true,
       ),
+      routerConfig: _router,
     );
   }
 }
