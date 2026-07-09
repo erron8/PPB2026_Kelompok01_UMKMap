@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -8,7 +10,10 @@ import 'package:provider/provider.dart';
 import '../models/umkm.dart';
 import '../providers/auth_provider.dart';
 import '../providers/umkm_provider.dart';
+import '../services/compass_service.dart';
+import '../services/location_service.dart';
 import '../utils/formatters.dart';
+import '../widgets/compass_arrow.dart';
 import '../widgets/loading_and_error.dart';
 import '../widgets/status_chip.dart';
 
@@ -228,7 +233,7 @@ class _ActionButtons extends StatelessWidget {
       runSpacing: 8,
       children: [
         FilledButton.icon(
-          onPressed: null,
+          onPressed: () => _showCompassSheet(context),
           icon: const Icon(Icons.explore_outlined),
           label: const Text('Arahkan'),
         ),
@@ -263,6 +268,15 @@ class _ActionButtons extends StatelessWidget {
             label: const Text('Tolak'),
           ),
       ],
+    );
+  }
+
+  Future<void> _showCompassSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _CompassNavigationSheet(umkm: umkm),
     );
   }
 
@@ -326,6 +340,267 @@ class _ActionButtons extends StatelessWidget {
               ? provider.mutationErrorMessage ??
                     'Gagal memperbarui status UMKM.'
               : successMessage,
+        ),
+      ),
+    );
+  }
+}
+
+class _CompassNavigationSheet extends StatefulWidget {
+  const _CompassNavigationSheet({required this.umkm});
+
+  final Umkm umkm;
+
+  @override
+  State<_CompassNavigationSheet> createState() =>
+      _CompassNavigationSheetState();
+}
+
+class _CompassNavigationSheetState extends State<_CompassNavigationSheet> {
+  static const _arrivalRadiusMeters = 15.0;
+  static const _lowHeadingAccuracyDegrees = 20.0;
+
+  final _compassService = const CompassService();
+  final _locationService = const LocationService();
+
+  StreamSubscription<CompassReading>? _compassSubscription;
+  StreamSubscription<LatLng>? _locationSubscription;
+  LatLng? _currentPoint;
+  double? _heading;
+  double? _headingAccuracy;
+  String? _errorMessage;
+  bool _isLoadingLocation = true;
+  bool _compassStarted = false;
+
+  LatLng get _targetPoint =>
+      LatLng(widget.umkm.latitude, widget.umkm.longitude);
+
+  @override
+  void initState() {
+    super.initState();
+    _startCompass();
+    _startLocation();
+  }
+
+  @override
+  void dispose() {
+    _compassSubscription?.cancel();
+    _locationSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final availability = await _locationService.ensurePermissionAndService();
+      if (availability != LocationAvailability.ready) {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingLocation = false;
+          _errorMessage = LocationService.messageFor(availability);
+        });
+        return;
+      }
+
+      final current = await _locationService.current();
+      if (!mounted) return;
+      setState(() {
+        _currentPoint = current;
+        _isLoadingLocation = false;
+        _errorMessage = null;
+      });
+
+      await _locationSubscription?.cancel();
+      _locationSubscription = _locationService.stream().listen(
+        (point) {
+          if (!mounted) return;
+          setState(() {
+            _currentPoint = point;
+            _errorMessage = null;
+          });
+        },
+        onError: (_) {
+          if (!mounted) return;
+          setState(() {
+            _errorMessage = 'Gagal memperbarui lokasi langsung.';
+          });
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingLocation = false;
+        _errorMessage = 'Gagal mengambil lokasi saat ini.';
+      });
+    }
+  }
+
+  void _startCompass() {
+    _compassSubscription = _compassService.readings().listen(
+      (reading) {
+        if (!mounted) return;
+        setState(() {
+          _compassStarted = true;
+          _heading = reading.heading;
+          _headingAccuracy = reading.accuracy;
+        });
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() {
+          _compassStarted = true;
+          _heading = null;
+          _headingAccuracy = null;
+        });
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final currentPoint = _currentPoint;
+    final bearing = currentPoint == null
+        ? 0.0
+        : _compassService.bearingDegrees(currentPoint, _targetPoint);
+    final distance = currentPoint == null
+        ? null
+        : _compassService.distanceMeters(currentPoint, _targetPoint);
+    final arrived = distance != null && distance < _arrivalRadiusMeters;
+    final hasHeading = _heading != null;
+    final needsCalibration =
+        hasHeading &&
+        (_headingAccuracy == null ||
+            _headingAccuracy!.abs() > _lowHeadingAccuracyDegrees);
+    final turns = CompassService.rotationTurns(
+      bearingDegrees: bearing,
+      headingDegrees: _heading,
+    );
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          4,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Arahkan ke UMKM',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.umkm.namaUsaha,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            CompassArrow(turns: turns, arrived: arrived),
+            const SizedBox(height: 20),
+            Text(
+              arrived
+                  ? 'Anda telah tiba'
+                  : distance == null
+                  ? 'Mengambil jarak...'
+                  : _formatDistance(distance),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: arrived ? Colors.green.shade700 : null,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              currentPoint == null
+                  ? 'Menunggu lokasi Anda.'
+                  : 'Arah ${bearing.toStringAsFixed(0)} derajat dari utara',
+              style: theme.textTheme.bodyMedium,
+            ),
+            if (_isLoadingLocation) ...[
+              const SizedBox(height: 16),
+              const LinearProgressIndicator(),
+            ],
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              _Notice(
+                icon: Icons.location_off_outlined,
+                message: _errorMessage!,
+                actionLabel: 'Coba Lagi',
+                onPressed: _startLocation,
+              ),
+            ],
+            if (!_compassStarted || !hasHeading) ...[
+              const SizedBox(height: 16),
+              const _Notice(
+                icon: Icons.explore_off_outlined,
+                message:
+                    'Sensor kompas tidak tersedia. Panah memakai arah statis dari lokasi Anda.',
+              ),
+            ] else if (needsCalibration) ...[
+              const SizedBox(height: 16),
+              const _Notice(
+                icon: Icons.screen_rotation_alt_outlined,
+                message: 'Kalibrasi: gerakkan HP membentuk angka 8',
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDistance(double meters) {
+    if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(2)} km';
+    return '${meters.round()} m';
+  }
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice({
+    required this.icon,
+    required this.message,
+    this.actionLabel,
+    this.onPressed,
+  });
+
+  final IconData icon;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+            if (actionLabel != null && onPressed != null) ...[
+              const SizedBox(width: 8),
+              TextButton(onPressed: onPressed, child: Text(actionLabel!)),
+            ],
+          ],
         ),
       ),
     );
