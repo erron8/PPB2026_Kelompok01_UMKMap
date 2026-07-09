@@ -61,4 +61,22 @@ void main() {
     );
     expect(rotation.turns, .25);
   });
+
+  testWidgets('CompassArrow rotates the short way across the 0/1 boundary', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: CompassArrow(turns: .97))),
+    );
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: CompassArrow(turns: .02))),
+    );
+
+    final rotation = tester.widget<AnimatedRotation>(
+      find.byType(AnimatedRotation),
+    );
+    // .97 -> .02 is a +.05 turn the short way, so the cumulative value should
+    // step forward to ~1.02, never back down to .02 (which would spin ~350°).
+    expect(rotation.turns, closeTo(1.02, .0001));
+  });
 }

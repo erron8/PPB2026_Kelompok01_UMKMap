@@ -472,10 +472,13 @@ class _CompassNavigationSheetState extends State<_CompassNavigationSheet> {
         : _compassService.distanceMeters(currentPoint, _targetPoint);
     final arrived = distance != null && distance < _arrivalRadiusMeters;
     final hasHeading = _heading != null;
+    // Only warn on a genuinely poor numeric accuracy. Many Android devices
+    // report a null accuracy (unknown) even when the compass is fine — nagging
+    // on that would show the calibration hint permanently.
     final needsCalibration =
         hasHeading &&
-        (_headingAccuracy == null ||
-            _headingAccuracy!.abs() > _lowHeadingAccuracyDegrees);
+        _headingAccuracy != null &&
+        _headingAccuracy!.abs() > _lowHeadingAccuracyDegrees;
     final turns = CompassService.rotationTurns(
       bearingDegrees: bearing,
       headingDegrees: _heading,
