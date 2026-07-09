@@ -8,7 +8,9 @@ import '../models/kategori.dart';
 import '../models/umkm.dart';
 import '../models/wilayah.dart';
 import '../providers/auth_provider.dart';
+import '../providers/location_provider.dart';
 import '../providers/umkm_provider.dart';
+import '../utils/app_exception.dart';
 import '../utils/validators.dart';
 import '../widgets/app_text_field.dart';
 import '../widgets/map_coordinate_picker.dart';
@@ -32,12 +34,13 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
   final _deskripsiController = TextEditingController();
   final _alamatJalanController = TextEditingController();
 
-  late final LatLng _initialMapPoint;
+  late LatLng _initialMapPoint;
   int? _selectedKategoriId;
   Wilayah? _selectedProvince;
   Wilayah? _selectedRegency;
   Wilayah? _selectedDistrict;
   LatLng? _selectedPoint;
+  bool _userMovedPin = false;
   XFile? _selectedPhoto;
   bool _existingPhotoRemoved = false;
   String? _photoErrorText;
@@ -76,7 +79,25 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<UmkmProvider>().loadCategories();
+      if (!_isEditMode) _prefillCurrentLocation();
     });
+  }
+
+  // Create mode: drop the pin on the device's current location so a new UMKM
+  // is not silently saved at the region default center. If GPS is
+  // denied/unavailable, keep the default center and let the user place the pin
+  // manually (map tap/drag or "Gunakan Lokasi Saya").
+  Future<void> _prefillCurrentLocation() async {
+    try {
+      final point = await context.read<LocationProvider>().loadCurrentPoint();
+      if (!mounted || _userMovedPin) return;
+      setState(() {
+        _initialMapPoint = point;
+        _selectedPoint = point;
+      });
+    } on AppException {
+      // Keep the region default center; manual placement remains available.
+    }
   }
 
   @override
@@ -190,9 +211,12 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
                 initialLatitude: _initialMapPoint.latitude,
                 initialLongitude: _initialMapPoint.longitude,
                 enabled: !isSubmitting,
+                currentLocationLoader: () =>
+                    context.read<LocationProvider>().loadCurrentPoint(),
                 errorText: _coordinateErrorText,
                 onChanged: (point) {
                   setState(() {
+                    _userMovedPin = true;
                     _selectedPoint = point;
                     _coordinateErrorText = null;
                   });

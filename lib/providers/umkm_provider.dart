@@ -22,6 +22,7 @@ class UmkmProvider extends ChangeNotifier {
   StorageService get _storage => _storageService ??= StorageService();
 
   List<Umkm> items = [];
+  List<Umkm> mapItems = [];
   List<Kategori> categories = [];
   Umkm? selectedUmkm;
   DashboardStats? stats;
@@ -31,6 +32,7 @@ class UmkmProvider extends ChangeNotifier {
   bool isLoadingCategories = false;
   bool isLoadingDetail = false;
   bool isLoadingStats = false;
+  bool isLoadingMapItems = false;
   bool isSubmitting = false;
   bool isDeleting = false;
   bool isChangingStatus = false;
@@ -40,6 +42,7 @@ class UmkmProvider extends ChangeNotifier {
   String? categoryErrorMessage;
   String? detailErrorMessage;
   String? statsErrorMessage;
+  String? mapErrorMessage;
   String? mutationErrorMessage;
 
   String searchQuery = '';
@@ -54,6 +57,7 @@ class UmkmProvider extends ChangeNotifier {
   int _page = 0;
   int _listRequestId = 0;
   int _detailRequestId = 0;
+  int _mapRequestId = 0;
 
   Future<void> loadCategories({bool force = false}) async {
     if (categories.isNotEmpty && !force) return;
@@ -181,6 +185,28 @@ class UmkmProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadMapItems() async {
+    final requestId = ++_mapRequestId;
+    isLoadingMapItems = true;
+    mapErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final rows = await _service.fetchList(status: 'verified', pageSize: 200);
+      if (requestId != _mapRequestId) return;
+      mapItems = rows;
+    } on AppException catch (error) {
+      if (requestId != _mapRequestId) return;
+      mapItems = [];
+      mapErrorMessage = error.message;
+    } finally {
+      if (requestId == _mapRequestId) {
+        isLoadingMapItems = false;
+        notifyListeners();
+      }
+    }
+  }
+
   Future<Umkm?> createUmkm({
     required UmkmInput input,
     required XFile photo,
@@ -197,6 +223,7 @@ class UmkmProvider extends ChangeNotifier {
       );
       selectedUmkm = created;
       _upsertItem(created);
+      _upsertMapItem(created);
       mutationErrorMessage = null;
       return created;
     } on AppException catch (error) {
@@ -228,6 +255,7 @@ class UmkmProvider extends ChangeNotifier {
       );
       selectedUmkm = updated;
       _upsertItem(updated);
+      _upsertMapItem(updated);
       mutationErrorMessage = null;
 
       if (uploadedPhotoUrl != null &&
@@ -255,6 +283,9 @@ class UmkmProvider extends ChangeNotifier {
     try {
       await _service.delete(id);
       items = items.where((item) => item.id != id).toList(growable: false);
+      mapItems = mapItems
+          .where((item) => item.id != id)
+          .toList(growable: false);
       if (selectedUmkm?.id == id) selectedUmkm = null;
       mutationErrorMessage = null;
       return true;
@@ -276,6 +307,7 @@ class UmkmProvider extends ChangeNotifier {
       final updated = await _service.setStatus(id: id, status: status);
       selectedUmkm = updated;
       _upsertItem(updated);
+      _upsertMapItem(updated);
       mutationErrorMessage = null;
       return updated;
     } on AppException catch (error) {
@@ -355,6 +387,28 @@ class UmkmProvider extends ChangeNotifier {
       items = [
         for (var i = 0; i < items.length; i++)
           if (i == index) value else items[i],
+      ];
+    }
+  }
+
+  void _upsertMapItem(Umkm value) {
+    final index = mapItems.indexWhere((item) => item.id == value.id);
+    if (value.status != 'verified') {
+      if (index >= 0) {
+        mapItems = [
+          for (var i = 0; i < mapItems.length; i++)
+            if (i != index) mapItems[i],
+        ];
+      }
+      return;
+    }
+
+    if (index < 0) {
+      mapItems = [value, ...mapItems];
+    } else {
+      mapItems = [
+        for (var i = 0; i < mapItems.length; i++)
+          if (i == index) value else mapItems[i],
       ];
     }
   }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'database/supabase_client.dart';
 import 'providers/auth_provider.dart';
+import 'providers/location_provider.dart';
 import 'providers/umkm_provider.dart';
 import 'utils/app_router.dart';
 import 'utils/constants.dart';
@@ -22,6 +23,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..restoreSession()),
         ChangeNotifierProvider(create: (_) => UmkmProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {

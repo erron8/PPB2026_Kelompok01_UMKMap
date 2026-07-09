@@ -9,14 +9,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:umkmap/models/kategori.dart';
 import 'package:umkmap/models/app_user.dart';
 import 'package:umkmap/models/umkm.dart';
 import 'package:umkmap/providers/auth_provider.dart';
+import 'package:umkmap/providers/location_provider.dart';
 import 'package:umkmap/providers/umkm_provider.dart';
 import 'package:umkmap/services/auth_service.dart';
+import 'package:umkmap/services/location_service.dart';
 import 'package:umkmap/services/session_service.dart';
 import 'package:umkmap/services/umkm_service.dart';
 import 'package:umkmap/utils/app_exception.dart';
@@ -72,6 +75,10 @@ Future<GoRouter> _pumpRouterApp(
         ChangeNotifierProvider<AuthProvider>.value(value: provider),
         ChangeNotifierProvider<UmkmProvider>(
           create: (_) => UmkmProvider(service: const _EmptyUmkmService()),
+        ),
+        ChangeNotifierProvider<LocationProvider>(
+          create: (_) =>
+              LocationProvider(service: const _FakeLocationService()),
         ),
       ],
       child: MaterialApp.router(routerConfig: router),
@@ -198,7 +205,7 @@ void main() {
 
     router.go('/map');
     await tester.pumpAndSettle();
-    expect(find.text('Peta'), findsOneWidget);
+    expect(find.text('Peta UMKM'), findsOneWidget);
 
     router.go('/umkm/123');
     await tester.pumpAndSettle();
@@ -230,6 +237,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Dashboard'), findsOneWidget);
   });
+}
+
+class _FakeLocationService implements LocationService {
+  const _FakeLocationService();
+
+  static const _point = LatLng(-5.147665, 119.432732);
+
+  @override
+  Future<LocationAvailability> ensurePermissionAndService() async {
+    return LocationAvailability.ready;
+  }
+
+  @override
+  Future<LatLng> current() async => _point;
+
+  @override
+  Stream<LatLng> stream() => Stream.value(_point);
+
+  @override
+  Future<void> openAppSettings() async {}
+
+  @override
+  Future<void> openLocationSettings() async {}
 }
 
 class _EmptyUmkmService implements UmkmService {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../utils/app_exception.dart';
+
 typedef CurrentLocationLoader = Future<LatLng> Function();
 
 class MapCoordinatePicker extends StatefulWidget {
@@ -15,7 +17,7 @@ class MapCoordinatePicker extends StatefulWidget {
     this.errorText,
   });
 
-  static const defaultCenter = LatLng(-5.147665, 119.432732);
+  static const defaultCenter = LatLng(-8.409518, 115.188919);
 
   final ValueChanged<LatLng> onChanged;
   final double? initialLatitude;
@@ -80,6 +82,13 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('Koordinat Lokasi', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        Text(
+          'Ketuk atau geser peta untuk menandai lokasi UMKM.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: colorScheme.outline),
+        ),
         const SizedBox(height: 8),
         DecoratedBox(
           decoration: BoxDecoration(
@@ -155,7 +164,7 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.my_location),
-                label: const Text('Lokasi Saya'),
+                label: const Text('Gunakan Lokasi Saya'),
               ),
             ],
           ],
@@ -204,6 +213,11 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
       final point = await loader();
       if (!mounted) return;
       _selectPoint(point, moveMap: true);
+    } on AppException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _locationErrorMessage = error.message;
+      });
     } on Object {
       if (!mounted) return;
       setState(() {
