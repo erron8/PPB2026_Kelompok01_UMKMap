@@ -3,6 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_user.dart';
 import '../utils/constants.dart';
 
+class SessionSnapshot {
+  const SessionSnapshot({
+    required this.userId,
+    required this.role,
+    required this.email,
+    required this.rememberMe,
+  });
+
+  final String? userId;
+  final String? role;
+  final String? email;
+  final bool? rememberMe;
+}
+
 class SessionService {
   const SessionService();
 
@@ -26,6 +40,16 @@ class SessionService {
     }
 
     return (userId: userId, role: role, email: email);
+  }
+
+  Future<SessionSnapshot> snapshot() async {
+    final prefs = await SharedPreferences.getInstance();
+    return SessionSnapshot(
+      userId: prefs.getString(PrefKeys.userId),
+      role: prefs.getString(PrefKeys.role),
+      email: prefs.getString(PrefKeys.email),
+      rememberMe: prefs.getBool(PrefKeys.rememberMe),
+    );
   }
 
   Future<void> clear() async {

@@ -23,6 +23,8 @@ class UmkmProvider extends ChangeNotifier {
 
   List<Umkm> items = [];
   List<Umkm> mapItems = [];
+  List<Umkm> dashboardRecentItems = [];
+  List<Umkm> pendingVerificationItems = [];
   List<Kategori> categories = [];
   Umkm? selectedUmkm;
   DashboardStats? stats;
@@ -32,6 +34,8 @@ class UmkmProvider extends ChangeNotifier {
   bool isLoadingCategories = false;
   bool isLoadingDetail = false;
   bool isLoadingStats = false;
+  bool isLoadingDashboardRecent = false;
+  bool isLoadingPendingVerification = false;
   bool isLoadingMapItems = false;
   bool isSubmitting = false;
   bool isDeleting = false;
@@ -42,6 +46,8 @@ class UmkmProvider extends ChangeNotifier {
   String? categoryErrorMessage;
   String? detailErrorMessage;
   String? statsErrorMessage;
+  String? dashboardRecentErrorMessage;
+  String? pendingVerificationErrorMessage;
   String? mapErrorMessage;
   String? mutationErrorMessage;
 
@@ -181,6 +187,44 @@ class UmkmProvider extends ChangeNotifier {
       statsErrorMessage = error.message;
     } finally {
       isLoadingStats = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadDashboardRecent({String? ownerId}) async {
+    isLoadingDashboardRecent = true;
+    dashboardRecentErrorMessage = null;
+    notifyListeners();
+
+    try {
+      dashboardRecentItems = await _service.fetchList(
+        ownerId: ownerId,
+        pageSize: 5,
+      );
+    } on AppException catch (error) {
+      dashboardRecentItems = [];
+      dashboardRecentErrorMessage = error.message;
+    } finally {
+      isLoadingDashboardRecent = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadPendingVerification() async {
+    isLoadingPendingVerification = true;
+    pendingVerificationErrorMessage = null;
+    notifyListeners();
+
+    try {
+      pendingVerificationItems = await _service.fetchList(
+        status: 'pending',
+        pageSize: 5,
+      );
+    } on AppException catch (error) {
+      pendingVerificationItems = [];
+      pendingVerificationErrorMessage = error.message;
+    } finally {
+      isLoadingPendingVerification = false;
       notifyListeners();
     }
   }
