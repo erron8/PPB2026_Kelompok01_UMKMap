@@ -571,7 +571,7 @@ class _UmkmMapSheet extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        context.go('/umkm/${umkm.id}');
+                        context.push('/umkm/${umkm.id}');
                       },
                       icon: const Icon(Icons.chevron_right),
                       label: const Text('Detail'),

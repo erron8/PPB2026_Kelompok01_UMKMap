@@ -138,7 +138,7 @@ class _UmkmListScreenState extends State<UmkmListScreen> {
       appBar: AppBar(title: const Text('Daftar UMKM')),
       floatingActionButton: canShowMine
           ? FloatingActionButton.extended(
-              onPressed: () => context.go('/umkm-form'),
+              onPressed: () => context.push('/umkm-form'),
               icon: const Icon(Icons.add_business),
               label: const Text('Tambah'),
             )
@@ -415,7 +415,7 @@ class _ListBody extends StatelessWidget {
           final umkm = provider.items[index];
           return UmkmCard(
             umkm: umkm,
-            onTap: () => context.go('/umkm/${umkm.id}'),
+            onTap: () => context.push('/umkm/${umkm.id}'),
           );
         },
       ),

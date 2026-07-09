@@ -51,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             tooltip: 'Profil',
-            onPressed: () => context.go('/profile'),
+            onPressed: () => context.push('/profile'),
             icon: const Icon(Icons.person),
           ),
         ],
@@ -318,7 +318,7 @@ class _MenuTile extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.go(route),
+        onTap: () => context.push(route),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
@@ -407,7 +407,7 @@ class _CompactUmkmTile extends StatelessWidget {
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: ListTile(
-        onTap: () => context.go('/umkm/${umkm.id}'),
+        onTap: () => context.push('/umkm/${umkm.id}'),
         leading: CircleAvatar(
           backgroundColor: theme.colorScheme.primaryContainer,
           child: Icon(

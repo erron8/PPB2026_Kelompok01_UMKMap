@@ -241,7 +241,7 @@ class _ActionButtons extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: isBusy
                 ? null
-                : () => context.go('/umkm-form', extra: umkm),
+                : () => context.push('/umkm-form', extra: umkm),
             icon: const Icon(Icons.edit_outlined),
             label: const Text('Edit'),
           ),
