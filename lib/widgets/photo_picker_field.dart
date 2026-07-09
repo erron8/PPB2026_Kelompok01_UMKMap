@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 typedef PickPhoto = Future<XFile?> Function(ImageSource source);
 
@@ -182,7 +182,7 @@ class _PhotoPickerFieldState extends State<PhotoPickerField> {
             FilledButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                await Geolocator.openAppSettings();
+                await openAppSettings();
               },
               child: const Text('Buka Pengaturan'),
             ),
