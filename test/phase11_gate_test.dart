@@ -1,8 +1,8 @@
 // Phase 11 gate — Dashboard & Profile (§6).
 //
 // Hermetic checks for role-scoped dashboard stats/recent rows and the live
-// SharedPreferences proof tile on Profile. Live DB count verification remains
-// part of the Phase 13 physical-device QA pass.
+// user information tile on Profile. Live DB count verification remains part of
+// the Phase 13 physical-device QA pass.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -71,7 +71,7 @@ void main() {
     expect(find.text('UMKM Pending'), findsOneWidget);
   });
 
-  testWidgets('profile shows all four SharedPreferences session values', (
+  testWidgets('profile shows user information without raw session keys', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
@@ -93,15 +93,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Session info'), findsOneWidget);
-    expect(find.text(PrefKeys.userId), findsOneWidget);
-    expect(find.text(_owner.id), findsOneWidget);
-    expect(find.text(PrefKeys.role), findsOneWidget);
-    expect(find.text(_owner.role), findsWidgets);
-    expect(find.text(PrefKeys.email), findsOneWidget);
+    expect(find.text('Informasi Pengguna'), findsOneWidget);
+    expect(find.text('Pemilik'), findsWidgets);
     expect(find.text(_owner.email), findsWidgets);
-    expect(find.text(PrefKeys.rememberMe), findsOneWidget);
-    expect(find.text('true'), findsOneWidget);
+    expect(find.text(PrefKeys.userId), findsNothing);
+    expect(find.text(_owner.id), findsNothing);
+    expect(find.text(PrefKeys.role), findsNothing);
+    expect(find.text(PrefKeys.email), findsNothing);
+    expect(find.text(PrefKeys.rememberMe), findsNothing);
+    expect(find.text('true'), findsNothing);
   });
 }
 
