@@ -25,6 +25,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _initialized = false;
   bool _hasAutoCentered = false;
   bool _tileErrorVisible = false;
+  int _tileRetryKey = 0;
 
   @override
   void initState() {
@@ -82,8 +83,10 @@ class _MapScreenState extends State<MapScreen> {
             options: MapOptions(initialCenter: initialCenter, initialZoom: 12),
             children: [
               TileLayer(
+                key: ValueKey(_tileRetryKey),
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.ppb2026.umkmap',
+                tileProvider: NetworkTileProvider(silenceExceptions: true),
                 errorTileCallback: (_, _, _) {
                   if (!_tileErrorVisible && mounted) {
                     setState(() => _tileErrorVisible = true);
@@ -131,6 +134,12 @@ class _MapScreenState extends State<MapScreen> {
               tileErrorVisible: _tileErrorVisible,
               umkmErrorMessage: umkmProvider.mapErrorMessage,
               locationProvider: locationProvider,
+              onRetryTiles: () {
+                setState(() {
+                  _tileRetryKey++;
+                  _tileErrorVisible = false;
+                });
+              },
               onRetryUmkm: umkmProvider.loadMapItems,
               onRetryLocation: _refreshLocation,
             ),
@@ -285,6 +294,7 @@ class _MapBanners extends StatelessWidget {
     required this.tileErrorVisible,
     required this.umkmErrorMessage,
     required this.locationProvider,
+    required this.onRetryTiles,
     required this.onRetryUmkm,
     required this.onRetryLocation,
   });
@@ -292,6 +302,7 @@ class _MapBanners extends StatelessWidget {
   final bool tileErrorVisible;
   final String? umkmErrorMessage;
   final LocationProvider locationProvider;
+  final VoidCallback onRetryTiles;
   final VoidCallback onRetryUmkm;
   final VoidCallback onRetryLocation;
 
@@ -304,8 +315,9 @@ class _MapBanners extends StatelessWidget {
       banners.add(
         _MapBanner(
           icon: Icons.wifi_off,
-          message:
-              'Tidak ada koneksi internet atau tile peta gagal dimuat. Coba lagi saat jaringan stabil.',
+          message: 'Tidak ada koneksi internet',
+          actionLabel: 'Coba Lagi',
+          onAction: onRetryTiles,
         ),
       );
     }

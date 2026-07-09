@@ -19,6 +19,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const primary = Color(AppColors.primary);
+    const secondary = Color(AppColors.secondary);
+    const background = Color(AppColors.background);
+    const error = Color(AppColors.error);
+    final colorScheme = ColorScheme.fromSeed(seedColor: primary).copyWith(
+      primary: primary,
+      secondary: secondary,
+      error: error,
+      surface: Colors.white,
+    );
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..restoreSession()),
@@ -31,10 +42,23 @@ class MyApp extends StatelessWidget {
             title: AppConfig.appName,
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(AppColors.primary),
+              colorScheme: colorScheme,
+              scaffoldBackgroundColor: background,
+              appBarTheme: const AppBarTheme(
+                backgroundColor: background,
+                foregroundColor: Colors.black87,
+                centerTitle: false,
               ),
-              scaffoldBackgroundColor: const Color(AppColors.background),
+              cardTheme: CardThemeData(
+                color: colorScheme.surface,
+                surfaceTintColor: Colors.transparent,
+              ),
+              snackBarTheme: SnackBarThemeData(
+                backgroundColor: colorScheme.inverseSurface,
+                contentTextStyle: TextStyle(
+                  color: colorScheme.onInverseSurface,
+                ),
+              ),
               useMaterial3: true,
             ),
             routerConfig: createAppRouter(authProvider),

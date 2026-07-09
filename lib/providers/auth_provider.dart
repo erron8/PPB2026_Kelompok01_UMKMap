@@ -93,6 +93,9 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       await _authService.signOut();
+      errorMessage = null;
+    } on AppException catch (error) {
+      errorMessage = error.message;
     } finally {
       await _sessionService.clear();
       user = null;

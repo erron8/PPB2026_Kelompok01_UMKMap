@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../utils/app_exception.dart';
 import '../widgets/app_text_field.dart';
 import '../widgets/primary_button.dart';
 
@@ -115,11 +116,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     if (auth.errorMessage != null) ...[
                       const SizedBox(height: 8),
-                      Text(
-                        auth.errorMessage!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                      _AuthErrorMessage(
+                        message: auth.errorMessage!,
+                        onRetry:
+                            AppException.isOfflineMessage(auth.errorMessage)
+                            ? _submit
+                            : null,
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -149,6 +151,51 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthErrorMessage extends StatelessWidget {
+  const _AuthErrorMessage({required this.message, this.onRetry});
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isOffline = AppException.isOfflineMessage(message);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isOffline ? colorScheme.errorContainer : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(isOffline ? 12 : 0),
+        child: Row(
+          children: [
+            if (isOffline) ...[
+              Icon(Icons.wifi_off, color: colorScheme.onErrorContainer),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: isOffline
+                      ? colorScheme.onErrorContainer
+                      : colorScheme.error,
+                ),
+              ),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(width: 8),
+              TextButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+            ],
+          ],
         ),
       ),
     );

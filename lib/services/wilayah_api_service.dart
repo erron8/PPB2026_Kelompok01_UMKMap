@@ -65,15 +65,16 @@ class WilayahApiService {
       final wilayah = _decodeList(response.body);
       _cache[cacheKey] = wilayah;
       return wilayah;
-    } on Object {
+    } on Object catch (error) {
       final fallback = await _loadFallback(assetPath);
       if (fallback != null) {
         _cache[cacheKey] = fallback;
         return fallback;
       }
 
-      throw const AppException(
-        'Gagal memuat data wilayah. Periksa koneksi internet lalu coba lagi.',
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal memuat data wilayah. Coba lagi.',
       );
     }
   }

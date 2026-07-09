@@ -66,8 +66,11 @@ class UmkmService {
           .toList(growable: false);
     } on PostgrestException catch (error) {
       throw AppException(error.message);
-    } catch (_) {
-      throw const AppException('Gagal memuat kategori UMKM.');
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal memuat kategori UMKM.',
+      );
     }
   }
 
@@ -114,10 +117,8 @@ class UmkmService {
           .toList(growable: false);
     } on PostgrestException catch (error) {
       throw AppException(error.message);
-    } catch (_) {
-      throw const AppException(
-        'Gagal memuat data UMKM. Periksa koneksi internet Anda.',
-      );
+    } catch (error) {
+      throw AppException.fromObject(error, fallback: 'Gagal memuat data UMKM.');
     }
   }
 
@@ -136,9 +137,10 @@ class UmkmService {
       return Umkm.fromJson(Map<String, dynamic>.from(data));
     } on PostgrestException catch (error) {
       throw AppException(error.message);
-    } catch (_) {
-      throw const AppException(
-        'Gagal memuat detail UMKM. Periksa koneksi internet Anda.',
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal memuat detail UMKM.',
       );
     }
   }
@@ -164,9 +166,10 @@ class UmkmService {
           fallback: 'Gagal menyimpan UMKM baru.',
         ),
       );
-    } catch (_) {
-      throw const AppException(
-        'Gagal menyimpan UMKM baru. Periksa koneksi internet Anda.',
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal menyimpan UMKM baru.',
       );
     }
   }
@@ -190,10 +193,8 @@ class UmkmService {
       throw AppException(
         _friendlyPostgrestMessage(error, fallback: 'Gagal memperbarui UMKM.'),
       );
-    } catch (_) {
-      throw const AppException(
-        'Gagal memperbarui UMKM. Periksa koneksi internet Anda.',
-      );
+    } catch (error) {
+      throw AppException.fromObject(error, fallback: 'Gagal memperbarui UMKM.');
     }
   }
 
@@ -222,10 +223,8 @@ class UmkmService {
       throw AppException(
         _friendlyPostgrestMessage(error, fallback: 'Gagal menghapus UMKM.'),
       );
-    } catch (_) {
-      throw const AppException(
-        'Gagal menghapus UMKM. Periksa koneksi internet Anda.',
-      );
+    } catch (error) {
+      throw AppException.fromObject(error, fallback: 'Gagal menghapus UMKM.');
     }
   }
 
@@ -254,9 +253,10 @@ class UmkmService {
           fallback: 'Gagal memperbarui status UMKM.',
         ),
       );
-    } catch (_) {
-      throw const AppException(
-        'Gagal memperbarui status UMKM. Periksa koneksi internet Anda.',
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal memperbarui status UMKM.',
       );
     }
   }
@@ -278,8 +278,11 @@ class UmkmService {
       );
     } on AppException {
       rethrow;
-    } catch (_) {
-      throw const AppException('Gagal memuat statistik UMKM.');
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal memuat statistik UMKM.',
+      );
     }
   }
 
@@ -299,6 +302,11 @@ class UmkmService {
       return response.count as int;
     } on PostgrestException catch (error) {
       throw AppException(error.message);
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal menghitung data UMKM.',
+      );
     }
   }
 
@@ -306,6 +314,9 @@ class UmkmService {
     PostgrestException error, {
     required String fallback,
   }) {
+    if (AppException.isNetworkError(error)) {
+      return AppException.offlineMessage;
+    }
     final message = error.message.toLowerCase();
     if (message.contains('row-level security') ||
         message.contains('permission denied') ||

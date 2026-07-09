@@ -43,8 +43,11 @@ class StorageService {
       return bucket.getPublicUrl(path);
     } on AppException {
       rethrow;
-    } on Object {
-      throw const AppException('Gagal mengunggah foto. Coba lagi.');
+    } on Object catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal mengunggah foto. Coba lagi.',
+      );
     }
   }
 
@@ -58,8 +61,11 @@ class StorageService {
 
     try {
       await _client.storage.from(AppBuckets.umkmPhotos).remove([path]);
-    } on Object {
-      throw const AppException('Gagal menghapus foto. Coba lagi.');
+    } on Object catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal menghapus foto. Coba lagi.',
+      );
     }
   }
 

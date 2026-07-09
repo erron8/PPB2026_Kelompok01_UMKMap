@@ -228,6 +228,13 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
                 isLoading: isSubmitting,
                 onPressed: isSubmitting ? null : _submit,
               ),
+              if (provider.mutationErrorMessage != null && !isSubmitting) ...[
+                const SizedBox(height: 12),
+                _InlineRetry(
+                  message: provider.mutationErrorMessage!,
+                  onRetry: _submit,
+                ),
+              ],
             ],
           ),
         ),

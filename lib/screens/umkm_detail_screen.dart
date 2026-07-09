@@ -669,47 +669,108 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _MiniMap extends StatelessWidget {
+class _MiniMap extends StatefulWidget {
   const _MiniMap({required this.umkm});
 
   final Umkm umkm;
 
   @override
+  State<_MiniMap> createState() => _MiniMapState();
+}
+
+class _MiniMapState extends State<_MiniMap> {
+  bool _tileErrorVisible = false;
+  int _tileRetryKey = 0;
+
+  @override
   Widget build(BuildContext context) {
-    final point = LatLng(umkm.latitude, umkm.longitude);
+    final point = LatLng(widget.umkm.latitude, widget.umkm.longitude);
     final colorScheme = Theme.of(context).colorScheme;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         height: 190,
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: point,
-            initialZoom: 15,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.none,
-            ),
-          ),
+        child: Stack(
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.ppb2026.umkmap',
-            ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: point,
-                  width: 46,
-                  height: 46,
-                  child: Icon(
-                    Icons.location_on,
-                    size: 44,
-                    color: colorScheme.secondary,
-                  ),
+            FlutterMap(
+              options: MapOptions(
+                initialCenter: point,
+                initialZoom: 15,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.none,
+                ),
+              ),
+              children: [
+                TileLayer(
+                  key: ValueKey(_tileRetryKey),
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.ppb2026.umkmap',
+                  tileProvider: NetworkTileProvider(silenceExceptions: true),
+                  errorTileCallback: (_, _, _) {
+                    if (!_tileErrorVisible && mounted) {
+                      setState(() => _tileErrorVisible = true);
+                    }
+                  },
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: point,
+                      width: 46,
+                      height: 46,
+                      child: Icon(
+                        Icons.location_on,
+                        size: 44,
+                        color: colorScheme.secondary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
+            if (_tileErrorVisible)
+              Positioned(
+                left: 8,
+                right: 8,
+                top: 8,
+                child: Material(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.wifi_off,
+                          color: colorScheme.onErrorContainer,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Tidak ada koneksi internet',
+                            style: TextStyle(
+                              color: colorScheme.onErrorContainer,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _tileRetryKey++;
+                              _tileErrorVisible = false;
+                            });
+                          },
+                          child: const Text('Coba Lagi'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

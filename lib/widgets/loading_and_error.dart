@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_exception.dart';
+
 class LoadingAndError extends StatelessWidget {
   const LoadingAndError({
     super.key,
@@ -29,6 +31,7 @@ class LoadingAndError extends StatelessWidget {
     if (message == null) return const SizedBox.shrink();
 
     final isError = errorMessage != null;
+    final isOffline = AppException.isOfflineMessage(errorMessage);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -36,7 +39,11 @@ class LoadingAndError extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isError ? Icons.error_outline : icon,
+              isOffline
+                  ? Icons.wifi_off
+                  : isError
+                  ? Icons.error_outline
+                  : icon,
               size: 40,
               color: isError ? colorScheme.error : colorScheme.outline,
             ),

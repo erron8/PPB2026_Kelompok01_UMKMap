@@ -26,10 +26,13 @@ class AuthService {
       return _currentProfile(user);
     } on AppException {
       rethrow;
-    } on AuthException {
+    } on AuthException catch (error) {
+      if (AppException.isNetworkError(error)) {
+        throw const AppException(AppException.offlineMessage);
+      }
       throw const AppException('Email atau kata sandi salah');
-    } catch (_) {
-      throw const AppException('Gagal masuk. Periksa koneksi internet Anda.');
+    } catch (error) {
+      throw AppException.fromObject(error, fallback: 'Gagal masuk. Coba lagi.');
     }
   }
 
@@ -57,10 +60,14 @@ class AuthService {
     } on AppException {
       rethrow;
     } on AuthException catch (error) {
+      if (AppException.isNetworkError(error)) {
+        throw const AppException(AppException.offlineMessage);
+      }
       throw AppException(error.message);
-    } catch (_) {
-      throw const AppException(
-        'Pendaftaran gagal. Periksa koneksi internet Anda.',
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Pendaftaran gagal. Coba lagi.',
       );
     }
   }
@@ -68,8 +75,11 @@ class AuthService {
   Future<void> signOut() async {
     try {
       await _client.auth.signOut();
-    } catch (_) {
-      throw const AppException('Gagal keluar. Coba lagi.');
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal keluar. Coba lagi.',
+      );
     }
   }
 

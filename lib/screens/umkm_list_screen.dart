@@ -152,7 +152,12 @@ class _UmkmListScreenState extends State<UmkmListScreen> {
           ),
           if (canShowMine)
             _ListModeTabs(showMine: _showMine, onChanged: _switchTab),
-          _CategoryChips(provider: provider, onSelected: _selectCategory),
+          _CategoryChips(
+            provider: provider,
+            onSelected: _selectCategory,
+            onRetry: () =>
+                context.read<UmkmProvider>().loadCategories(force: true),
+          ),
           if (provider.kotaNama != null)
             _ActiveRegionFilter(
               label: provider.kotaNama!,
@@ -253,10 +258,15 @@ class _ListModeTabs extends StatelessWidget {
 }
 
 class _CategoryChips extends StatelessWidget {
-  const _CategoryChips({required this.provider, required this.onSelected});
+  const _CategoryChips({
+    required this.provider,
+    required this.onSelected,
+    required this.onRetry,
+  });
 
   final UmkmProvider provider;
   final ValueChanged<int?> onSelected;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -270,6 +280,16 @@ class _CategoryChips extends StatelessWidget {
             dimension: 18,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
+        ),
+      );
+    }
+
+    if (provider.categoryErrorMessage != null && categories.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: _InlineRetryBanner(
+          message: provider.categoryErrorMessage!,
+          onRetry: onRetry,
         ),
       );
     }
@@ -294,6 +314,41 @@ class _CategoryChips extends StatelessWidget {
             onSelected: (_) => onSelected(category?.id),
           );
         },
+      ),
+    );
+  }
+}
+
+class _InlineRetryBanner extends StatelessWidget {
+  const _InlineRetryBanner({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.wifi_off, color: colorScheme.onErrorContainer),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: colorScheme.onErrorContainer),
+              ),
+            ),
+            TextButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+          ],
+        ),
       ),
     );
   }
