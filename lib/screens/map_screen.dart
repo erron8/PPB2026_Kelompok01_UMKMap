@@ -104,9 +104,11 @@ class _MapScreenState extends State<MapScreen> {
                   ...visibleItems.map(
                     (umkm) => Marker(
                       point: LatLng(umkm.latitude, umkm.longitude),
-                      width: 44,
-                      height: 44,
+                      width: 140,
+                      height: 58,
+                      alignment: Alignment.topCenter,
                       child: _UmkmMarker(
+                        label: umkm.namaUsaha,
                         color: _categoryColor(context, umkm.kategoriId),
                         onTap: () => _showUmkmSheet(context, umkm),
                       ),
@@ -260,8 +262,13 @@ class _MapScreenState extends State<MapScreen> {
 }
 
 class _UmkmMarker extends StatelessWidget {
-  const _UmkmMarker({required this.color, required this.onTap});
+  const _UmkmMarker({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
+  final String label;
   final Color color;
   final VoidCallback onTap;
 
@@ -270,7 +277,41 @@ class _UmkmMarker extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Icon(Icons.location_on, size: 42, color: color),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 132),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: color),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+          Icon(Icons.location_on, size: 36, color: color),
+        ],
+      ),
     );
   }
 }
