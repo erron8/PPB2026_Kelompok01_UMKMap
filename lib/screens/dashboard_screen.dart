@@ -22,18 +22,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadDashboardData());
   }
 
-  void _loadDashboardData() {
+  Future<void> _loadDashboardData() async {
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     if (user == null) return;
 
     final ownerId = user.isAdmin ? null : user.id;
     final provider = context.read<UmkmProvider>();
-    provider.loadDashboardStats(ownerId: ownerId);
-    provider.loadDashboardRecent(ownerId: ownerId);
-    if (user.isAdmin) {
-      provider.loadPendingVerification();
-    }
+    // Await every fetch so the pull-to-refresh spinner stays until the data
+    // actually lands instead of retracting immediately.
+    await Future.wait([
+      provider.loadDashboardStats(ownerId: ownerId),
+      provider.loadDashboardRecent(ownerId: ownerId),
+      if (user.isAdmin) provider.loadPendingVerification(),
+    ]);
   }
 
   @override
@@ -55,7 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => _loadDashboardData(),
+        onRefresh: _loadDashboardData,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
