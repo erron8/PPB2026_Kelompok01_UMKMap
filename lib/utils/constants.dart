@@ -53,6 +53,7 @@ class AppColors {
   static const oliveGrey = 0xFF8A9070;
   static const dragHandle = 0xFFDDE1D3;
   static const photoDash = 0xFFC9D1B4;
+  static const userLocation = 0xFF1976D2;
 
   static const statusVerifiedText = 0xFF2E7D32;
   static const statusVerifiedFill = 0xFFE3F0DC;
