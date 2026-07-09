@@ -12,7 +12,7 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.storefront, size: 72, color: AppColors.primary),
+            Icon(Icons.storefront, size: 72, color: Color(AppColors.primary)),
             SizedBox(height: 16),
             Text(
               AppConfig.appName,
@@ -20,6 +20,8 @@ class SplashScreen extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text('Pendataan UMKM berbasis peta'),
+            SizedBox(height: 24),
+            CircularProgressIndicator(),
           ],
         ),
       ),
