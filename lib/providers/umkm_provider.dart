@@ -1,17 +1,25 @@
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/kategori.dart';
 import '../models/umkm.dart';
+import '../services/storage_service.dart';
 import '../services/umkm_service.dart';
 import '../utils/app_exception.dart';
 
 class UmkmProvider extends ChangeNotifier {
-  UmkmProvider({UmkmService service = const UmkmService()})
-    : _service = service;
+  UmkmProvider({
+    UmkmService service = const UmkmService(),
+    StorageService? storageService,
+  }) : _service = service,
+       _storageService = storageService;
 
   static const pageSize = 20;
 
   final UmkmService _service;
+  StorageService? _storageService;
+
+  StorageService get _storage => _storageService ??= StorageService();
 
   List<Umkm> items = [];
   List<Kategori> categories = [];
@@ -23,12 +31,16 @@ class UmkmProvider extends ChangeNotifier {
   bool isLoadingCategories = false;
   bool isLoadingDetail = false;
   bool isLoadingStats = false;
+  bool isSubmitting = false;
+  bool isDeleting = false;
+  bool isChangingStatus = false;
   bool hasMore = true;
 
   String? errorMessage;
   String? categoryErrorMessage;
   String? detailErrorMessage;
   String? statsErrorMessage;
+  String? mutationErrorMessage;
 
   String searchQuery = '';
   int? kategoriId;
@@ -169,6 +181,112 @@ class UmkmProvider extends ChangeNotifier {
     }
   }
 
+  Future<Umkm?> createUmkm({
+    required UmkmInput input,
+    required XFile photo,
+  }) async {
+    final id = _service.newId();
+    String? uploadedPhotoUrl;
+
+    _setSubmitting(true);
+    try {
+      uploadedPhotoUrl = await _storage.uploadPhoto(file: photo, umkmId: id);
+      final created = await _service.create(
+        id: id,
+        input: input.withFotoUrl(uploadedPhotoUrl),
+      );
+      selectedUmkm = created;
+      _upsertItem(created);
+      mutationErrorMessage = null;
+      return created;
+    } on AppException catch (error) {
+      mutationErrorMessage = error.message;
+      await _deleteUploadedPhotoQuietly(uploadedPhotoUrl);
+      return null;
+    } finally {
+      _setSubmitting(false);
+    }
+  }
+
+  Future<Umkm?> updateUmkm({
+    required String id,
+    required UmkmInput input,
+    XFile? photo,
+    String? previousPhotoUrl,
+  }) async {
+    String? uploadedPhotoUrl;
+
+    _setSubmitting(true);
+    try {
+      if (photo != null) {
+        uploadedPhotoUrl = await _storage.uploadPhoto(file: photo, umkmId: id);
+      }
+
+      final updated = await _service.update(
+        id: id,
+        input: input.withFotoUrl(uploadedPhotoUrl ?? input.fotoUrl),
+      );
+      selectedUmkm = updated;
+      _upsertItem(updated);
+      mutationErrorMessage = null;
+
+      if (uploadedPhotoUrl != null &&
+          previousPhotoUrl != null &&
+          previousPhotoUrl.isNotEmpty &&
+          previousPhotoUrl != uploadedPhotoUrl) {
+        await _deleteUploadedPhotoQuietly(previousPhotoUrl);
+      }
+
+      return updated;
+    } on AppException catch (error) {
+      mutationErrorMessage = error.message;
+      await _deleteUploadedPhotoQuietly(uploadedPhotoUrl);
+      return null;
+    } finally {
+      _setSubmitting(false);
+    }
+  }
+
+  Future<bool> deleteUmkm(String id) async {
+    isDeleting = true;
+    mutationErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _service.delete(id);
+      items = items.where((item) => item.id != id).toList(growable: false);
+      if (selectedUmkm?.id == id) selectedUmkm = null;
+      mutationErrorMessage = null;
+      return true;
+    } on AppException catch (error) {
+      mutationErrorMessage = error.message;
+      return false;
+    } finally {
+      isDeleting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Umkm?> setStatus({required String id, required String status}) async {
+    isChangingStatus = true;
+    mutationErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _service.setStatus(id: id, status: status);
+      selectedUmkm = updated;
+      _upsertItem(updated);
+      mutationErrorMessage = null;
+      return updated;
+    } on AppException catch (error) {
+      mutationErrorMessage = error.message;
+      return null;
+    } finally {
+      isChangingStatus = false;
+      notifyListeners();
+    }
+  }
+
   void setSearchQuery(String value) {
     final trimmed = value.trim();
     if (searchQuery == trimmed) return;
@@ -211,5 +329,58 @@ class UmkmProvider extends ChangeNotifier {
     if (verifiedOnly == value) return;
     verifiedOnly = value;
     notifyListeners();
+  }
+
+  void _setSubmitting(bool value) {
+    isSubmitting = value;
+    if (value) mutationErrorMessage = null;
+    notifyListeners();
+  }
+
+  void _upsertItem(Umkm value) {
+    final index = items.indexWhere((item) => item.id == value.id);
+    if (!_matchesActiveFilters(value)) {
+      if (index >= 0) {
+        items = [
+          for (var i = 0; i < items.length; i++)
+            if (i != index) items[i],
+        ];
+      }
+      return;
+    }
+
+    if (index < 0) {
+      items = [value, ...items];
+    } else {
+      items = [
+        for (var i = 0; i < items.length; i++)
+          if (i == index) value else items[i],
+      ];
+    }
+  }
+
+  bool _matchesActiveFilters(Umkm value) {
+    if (verifiedOnly && value.status != 'verified') return false;
+    if (ownerId != null && ownerId!.isNotEmpty && value.ownerId != ownerId) {
+      return false;
+    }
+    if (kategoriId != null && value.kategoriId != kategoriId) return false;
+    if (kotaId != null && kotaId!.isNotEmpty && value.kotaId != kotaId) {
+      return false;
+    }
+    if (searchQuery.isNotEmpty &&
+        !value.namaUsaha.toLowerCase().contains(searchQuery.toLowerCase())) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _deleteUploadedPhotoQuietly(String? photoUrl) async {
+    if (photoUrl == null || photoUrl.isEmpty) return;
+    try {
+      await _storage.deletePhotoByUrl(photoUrl);
+    } on AppException {
+      // The row write outcome matters more than best-effort storage cleanup.
+    }
   }
 }

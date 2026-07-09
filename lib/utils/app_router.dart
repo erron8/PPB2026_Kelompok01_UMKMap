@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../models/umkm.dart';
 import '../providers/auth_provider.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/login_screen.dart';
@@ -50,7 +51,9 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/umkm-form',
         name: 'umkm-form',
-        builder: (context, state) => const UmkmFormScreen(),
+        builder: (context, state) => UmkmFormScreen(
+          initialUmkm: state.extra is Umkm ? state.extra as Umkm : null,
+        ),
       ),
       GoRoute(
         path: '/map',

@@ -236,6 +236,9 @@ class _EmptyUmkmService implements UmkmService {
   const _EmptyUmkmService();
 
   @override
+  String newId() => '00000000-0000-4000-8000-000000000001';
+
+  @override
   Future<List<Kategori>> fetchKategori() async => const [];
 
   @override
@@ -253,6 +256,24 @@ class _EmptyUmkmService implements UmkmService {
 
   @override
   Future<Umkm?> fetchById(String id) async => null;
+
+  @override
+  Future<Umkm> create({required String id, required UmkmInput input}) async {
+    throw const AppException('not implemented');
+  }
+
+  @override
+  Future<Umkm> update({required String id, required UmkmInput input}) async {
+    throw const AppException('not implemented');
+  }
+
+  @override
+  Future<void> delete(String id) async {}
+
+  @override
+  Future<Umkm> setStatus({required String id, required String status}) async {
+    throw const AppException('not implemented');
+  }
 
   @override
   Future<DashboardStats> dashboardStats({String? ownerId}) async {

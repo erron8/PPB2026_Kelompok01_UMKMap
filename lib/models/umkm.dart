@@ -142,3 +142,100 @@ class Umkm {
     return null;
   }
 }
+
+class UmkmInput {
+  const UmkmInput({
+    required this.ownerId,
+    required this.namaUsaha,
+    required this.namaPemilik,
+    required this.kategoriId,
+    this.deskripsi,
+    this.alamatJalan,
+    required this.provinsiId,
+    required this.provinsiNama,
+    required this.kotaId,
+    required this.kotaNama,
+    required this.kecamatanId,
+    required this.kecamatanNama,
+    required this.latitude,
+    required this.longitude,
+    this.fotoUrl,
+  });
+
+  final String ownerId;
+  final String namaUsaha;
+  final String namaPemilik;
+  final int kategoriId;
+  final String? deskripsi;
+  final String? alamatJalan;
+  final String provinsiId;
+  final String provinsiNama;
+  final String kotaId;
+  final String kotaNama;
+  final String kecamatanId;
+  final String kecamatanNama;
+  final double latitude;
+  final double longitude;
+  final String? fotoUrl;
+
+  UmkmInput withFotoUrl(String? value) {
+    return UmkmInput(
+      ownerId: ownerId,
+      namaUsaha: namaUsaha,
+      namaPemilik: namaPemilik,
+      kategoriId: kategoriId,
+      deskripsi: deskripsi,
+      alamatJalan: alamatJalan,
+      provinsiId: provinsiId,
+      provinsiNama: provinsiNama,
+      kotaId: kotaId,
+      kotaNama: kotaNama,
+      kecamatanId: kecamatanId,
+      kecamatanNama: kecamatanNama,
+      latitude: latitude,
+      longitude: longitude,
+      fotoUrl: value,
+    );
+  }
+
+  Map<String, dynamic> toInsertJson({required String id}) {
+    return {
+      'id': id,
+      'owner_id': ownerId,
+      'nama_usaha': namaUsaha,
+      'nama_pemilik': namaPemilik,
+      'kategori_id': kategoriId,
+      'deskripsi': deskripsi,
+      'alamat_jalan': alamatJalan,
+      'provinsi_id': provinsiId,
+      'provinsi_nama': provinsiNama,
+      'kota_id': kotaId,
+      'kota_nama': kotaNama,
+      'kecamatan_id': kecamatanId,
+      'kecamatan_nama': kecamatanNama,
+      'latitude': latitude,
+      'longitude': longitude,
+      'foto_url': fotoUrl,
+      'status': 'pending',
+    };
+  }
+
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      'nama_usaha': namaUsaha,
+      'nama_pemilik': namaPemilik,
+      'kategori_id': kategoriId,
+      'deskripsi': deskripsi,
+      'alamat_jalan': alamatJalan,
+      'provinsi_id': provinsiId,
+      'provinsi_nama': provinsiNama,
+      'kota_id': kotaId,
+      'kota_nama': kotaNama,
+      'kecamatan_id': kecamatanId,
+      'kecamatan_nama': kecamatanNama,
+      'latitude': latitude,
+      'longitude': longitude,
+      'foto_url': fotoUrl,
+    };
+  }
+}

@@ -77,6 +77,7 @@ class _DetailContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final canEdit = auth.isAdmin || auth.user?.id == umkm.ownerId;
+    final canVerify = auth.isAdmin;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -118,7 +119,11 @@ class _DetailContent extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _ActionButtons(canEdit: canEdit),
+                _ActionButtons(
+                  umkm: umkm,
+                  canEdit: canEdit,
+                  canVerify: canVerify,
+                ),
                 const SizedBox(height: 24),
                 _SectionTitle(title: 'Informasi Usaha'),
                 const SizedBox(height: 8),
@@ -203,12 +208,21 @@ class _PhotoHeader extends StatelessWidget {
 }
 
 class _ActionButtons extends StatelessWidget {
-  const _ActionButtons({required this.canEdit});
+  const _ActionButtons({
+    required this.umkm,
+    required this.canEdit,
+    required this.canVerify,
+  });
 
+  final Umkm umkm;
   final bool canEdit;
+  final bool canVerify;
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<UmkmProvider>();
+    final isBusy = provider.isDeleting || provider.isChangingStatus;
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -220,11 +234,100 @@ class _ActionButtons extends StatelessWidget {
         ),
         if (canEdit)
           OutlinedButton.icon(
-            onPressed: () => context.go('/umkm-form'),
+            onPressed: isBusy
+                ? null
+                : () => context.go('/umkm-form', extra: umkm),
             icon: const Icon(Icons.edit_outlined),
             label: const Text('Edit'),
           ),
+        if (canEdit)
+          OutlinedButton.icon(
+            onPressed: isBusy ? null : () => _confirmDelete(context),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Hapus'),
+          ),
+        if (canVerify && umkm.status != 'verified')
+          FilledButton.icon(
+            onPressed: isBusy
+                ? null
+                : () => _setStatus(context, 'verified', 'UMKM diverifikasi.'),
+            icon: const Icon(Icons.verified_outlined),
+            label: const Text('Verifikasi'),
+          ),
+        if (canVerify && umkm.status != 'rejected')
+          OutlinedButton.icon(
+            onPressed: isBusy
+                ? null
+                : () => _setStatus(context, 'rejected', 'UMKM ditolak.'),
+            icon: const Icon(Icons.block_outlined),
+            label: const Text('Tolak'),
+          ),
       ],
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Hapus UMKM'),
+          content: const Text(
+            'Hapus UMKM ini? Tindakan tidak dapat dibatalkan.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Hapus'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final provider = context.read<UmkmProvider>();
+    final deleted = await provider.deleteUmkm(umkm.id);
+    if (!context.mounted) return;
+
+    if (deleted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('UMKM dihapus.')));
+      context.go('/umkm');
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(provider.mutationErrorMessage ?? 'Gagal menghapus UMKM.'),
+      ),
+    );
+  }
+
+  Future<void> _setStatus(
+    BuildContext context,
+    String status,
+    String successMessage,
+  ) async {
+    final provider = context.read<UmkmProvider>();
+    final updated = await provider.setStatus(id: umkm.id, status: status);
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          updated == null
+              ? provider.mutationErrorMessage ??
+                    'Gagal memperbarui status UMKM.'
+              : successMessage,
+        ),
+      ),
     );
   }
 }
