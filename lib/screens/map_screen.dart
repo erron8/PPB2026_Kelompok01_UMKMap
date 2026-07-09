@@ -26,6 +26,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _hasAutoCentered = false;
   bool _tileErrorVisible = false;
   int _tileRetryKey = 0;
+  int? _selectedCategoryId;
 
   @override
   void initState() {
@@ -51,15 +52,20 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final umkmProvider = context.watch<UmkmProvider>();
     final locationProvider = context.watch<LocationProvider>();
-    final markers = umkmProvider.mapItems;
+    final allItems = umkmProvider.mapItems;
+    final visibleItems = _selectedCategoryId == null
+        ? allItems
+        : allItems
+              .where((umkm) => umkm.kategoriId == _selectedCategoryId)
+              .toList(growable: false);
     final currentLocation = locationProvider.currentLocation;
     final initialCenter =
         currentLocation ??
-        (markers.isEmpty
+        (allItems.isEmpty
             ? MapCoordinatePicker.defaultCenter
-            : LatLng(markers.first.latitude, markers.first.longitude));
+            : LatLng(allItems.first.latitude, allItems.first.longitude));
 
-    _autoCenterOnce(currentLocation, markers);
+    _autoCenterOnce(currentLocation, allItems);
 
     return Scaffold(
       appBar: AppBar(
@@ -95,7 +101,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  ...markers.map(
+                  ...visibleItems.map(
                     (umkm) => Marker(
                       point: LatLng(umkm.latitude, umkm.longitude),
                       width: 44,
@@ -119,7 +125,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ],
           ),
-          if (umkmProvider.isLoadingMapItems && markers.isEmpty)
+          if (umkmProvider.isLoadingMapItems && allItems.isEmpty)
             const Positioned(
               left: 0,
               right: 0,
@@ -144,14 +150,15 @@ class _MapScreenState extends State<MapScreen> {
               onRetryLocation: _refreshLocation,
             ),
           ),
-          if (!umkmProvider.isLoadingMapItems && markers.isEmpty)
+          if (!umkmProvider.isLoadingMapItems && visibleItems.isEmpty)
             Positioned.fill(
               child: IgnorePointer(
                 child: Center(
                   child: _EmptyMapMessage(
-                    message:
-                        umkmProvider.mapErrorMessage ??
-                        'Belum ada UMKM terverifikasi di peta.',
+                    message: _selectedCategoryId == null
+                        ? umkmProvider.mapErrorMessage ??
+                              'Belum ada UMKM terverifikasi di peta.'
+                        : 'Belum ada UMKM kategori ini di peta.',
                   ),
                 ),
               ),
@@ -162,7 +169,13 @@ class _MapScreenState extends State<MapScreen> {
             bottom: 16,
             child: _CategoryLegend(
               categories: umkmProvider.categories,
+              selectedId: _selectedCategoryId,
               colorFor: (id) => _categoryColor(context, id),
+              onToggle: (id) {
+                setState(() {
+                  _selectedCategoryId = _selectedCategoryId == id ? null : id;
+                });
+              },
             ),
           ),
           Positioned(
@@ -438,10 +451,17 @@ class _EmptyMapMessage extends StatelessWidget {
 }
 
 class _CategoryLegend extends StatelessWidget {
-  const _CategoryLegend({required this.categories, required this.colorFor});
+  const _CategoryLegend({
+    required this.categories,
+    required this.selectedId,
+    required this.colorFor,
+    required this.onToggle,
+  });
 
   final List<Kategori> categories;
+  final int? selectedId;
   final Color Function(int id) colorFor;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -457,6 +477,8 @@ class _CategoryLegend extends StatelessWidget {
                 child: _LegendChip(
                   label: category.nama,
                   color: colorFor(category.id),
+                  selected: selectedId == category.id,
+                  onTap: () => onToggle(category.id),
                 ),
               ),
             )
@@ -467,26 +489,53 @@ class _CategoryLegend extends StatelessWidget {
 }
 
 class _LegendChip extends StatelessWidget {
-  const _LegendChip({required this.label, required this.color});
+  const _LegendChip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final Color color;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foregroundColor = selected ? Colors.white : null;
+
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: selected ? color : theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(8),
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.location_on, size: 18, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
+      elevation: selected ? 2 : 1,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_on,
+                  size: 18,
+                  color: selected ? Colors.white : color,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: selected ? FontWeight.w700 : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -570,8 +619,9 @@ class _UmkmMapSheet extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: FilledButton.icon(
                       onPressed: () {
+                        final router = GoRouter.of(context);
                         Navigator.of(context).pop();
-                        context.push('/umkm/${umkm.id}');
+                        router.push('/umkm/${umkm.id}');
                       },
                       icon: const Icon(Icons.chevron_right),
                       label: const Text('Detail'),
