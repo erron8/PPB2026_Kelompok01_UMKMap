@@ -32,6 +32,7 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
   final _deskripsiController = TextEditingController();
   final _alamatJalanController = TextEditingController();
 
+  late final LatLng _initialMapPoint;
   int? _selectedKategoriId;
   Wilayah? _selectedProvince;
   Wilayah? _selectedRegency;
@@ -67,7 +68,10 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
         name: initialUmkm.kecamatanNama,
       );
       _selectedPoint = LatLng(initialUmkm.latitude, initialUmkm.longitude);
+    } else {
+      _selectedPoint = MapCoordinatePicker.defaultCenter;
     }
+    _initialMapPoint = _selectedPoint!;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -183,8 +187,8 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
               ),
               const SizedBox(height: 16),
               MapCoordinatePicker(
-                initialLatitude: widget.initialUmkm?.latitude,
-                initialLongitude: widget.initialUmkm?.longitude,
+                initialLatitude: _initialMapPoint.latitude,
+                initialLongitude: _initialMapPoint.longitude,
                 enabled: !isSubmitting,
                 errorText: _coordinateErrorText,
                 onChanged: (point) {
@@ -273,12 +277,18 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
       return;
     }
 
-    _showSnackBar(
-      initialUmkm == null
-          ? 'UMKM tersimpan dan menunggu verifikasi.'
-          : 'Perubahan UMKM tersimpan.',
-    );
+    _showSnackBar(_successMessage(initialUmkm: initialUmkm, saved: saved));
     context.go('/umkm/${saved.id}');
+  }
+
+  String _successMessage({required Umkm? initialUmkm, required Umkm saved}) {
+    if (initialUmkm == null) {
+      return 'UMKM tersimpan dan menunggu verifikasi.';
+    }
+    if (initialUmkm.status != 'pending' && saved.status == 'pending') {
+      return 'Perubahan UMKM tersimpan dan menunggu verifikasi ulang.';
+    }
+    return 'Perubahan UMKM tersimpan.';
   }
 
   String? _validatePhoto() {

@@ -65,7 +65,8 @@ create policy "owner insert" on public.umkm
 
 -- Owners update/delete own rows; admins anything (incl. status changes)
 create policy "owner or admin update" on public.umkm
-  for update using (owner_id = auth.uid() or public.is_admin());
+  for update using (owner_id = auth.uid() or public.is_admin())
+  with check (owner_id = auth.uid() or public.is_admin());
 create policy "owner or admin delete" on public.umkm
   for delete using (owner_id = auth.uid() or public.is_admin());
 

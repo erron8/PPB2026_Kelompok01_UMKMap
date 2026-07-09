@@ -74,6 +74,7 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
         : '${_selectedPoint!.latitude.toStringAsFixed(6)}, '
               '${_selectedPoint!.longitude.toStringAsFixed(6)}';
     final hasError = widget.errorText != null;
+    final canUseCurrentLocation = widget.currentLocationLoader != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -142,22 +143,21 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed:
-                  widget.enabled &&
-                      widget.currentLocationLoader != null &&
-                      !_isLoadingLocation
-                  ? _useCurrentLocation
-                  : null,
-              icon: _isLoadingLocation
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.my_location),
-              label: const Text('Lokasi Saya'),
-            ),
+            if (canUseCurrentLocation) ...[
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: widget.enabled && !_isLoadingLocation
+                    ? _useCurrentLocation
+                    : null,
+                icon: _isLoadingLocation
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+                label: const Text('Lokasi Saya'),
+              ),
+            ],
           ],
         ),
         if (widget.errorText != null) ...[
