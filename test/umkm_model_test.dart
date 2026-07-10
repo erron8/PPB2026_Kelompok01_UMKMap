@@ -47,6 +47,8 @@ void main() {
       'foto_url': json['foto_url'],
       'status': json['status'],
       'detail_kategori': null,
+      'hari_operasional': null,
+      'jam_operasional': null,
     });
     expect(umkm.toInsertJson().containsKey('id'), isFalse);
     expect(umkm.toInsertJson().containsKey('created_at'), isFalse);

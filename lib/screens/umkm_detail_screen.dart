@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
+import 'package:image_picker/image_picker.dart';
+
 import '../models/umkm.dart';
 import '../providers/auth_provider.dart';
 import '../providers/umkm_provider.dart';
@@ -16,6 +18,8 @@ import '../utils/formatters.dart';
 import '../utils/constants.dart';
 import '../widgets/compass_arrow.dart';
 import '../widgets/loading_and_error.dart';
+import '../widgets/photo_picker_field.dart';
+import '../widgets/primary_button.dart';
 import '../widgets/status_chip.dart';
 
 class UmkmDetailScreen extends StatefulWidget {
@@ -149,6 +153,7 @@ class _DetailContent extends StatelessWidget {
                       umkm: umkm,
                       canEdit: canEdit,
                       canVerify: canVerify,
+                      reporterId: user?.id,
                     ),
                     const SizedBox(height: 24),
                     _SectionTitle(title: 'Informasi Usaha'),
@@ -178,6 +183,20 @@ class _DetailContent extends StatelessWidget {
                           label: 'Diperbarui',
                           value: Formatters.date(umkm.updatedAt),
                         ),
+                        if (umkm.hariOperasional != null &&
+                            umkm.hariOperasional!.trim().isNotEmpty)
+                          _InfoRow(
+                            icon: Icons.calendar_today_outlined,
+                            label: 'Hari Operasional',
+                            value: umkm.hariOperasional!,
+                          ),
+                        if (umkm.jamOperasional != null &&
+                            umkm.jamOperasional!.trim().isNotEmpty)
+                          _InfoRow(
+                            icon: Icons.access_time,
+                            label: 'Jam Operasional',
+                            value: umkm.jamOperasional!,
+                          ),
                         if (umkm.deskripsi != null &&
                             umkm.deskripsi!.trim().isNotEmpty)
                           _InfoRow(
@@ -270,11 +289,13 @@ class _ActionButtons extends StatelessWidget {
     required this.umkm,
     required this.canEdit,
     required this.canVerify,
+    this.reporterId,
   });
 
   final Umkm umkm;
   final bool canEdit;
   final bool canVerify;
+  final String? reporterId;
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +358,23 @@ class _ActionButtons extends StatelessWidget {
             icon: const Icon(Icons.block_outlined),
             label: const Text('Tolak'),
           ),
+        if (reporterId != null && reporterId != umkm.ownerId)
+          OutlinedButton.icon(
+            style: destructiveStyle,
+            onPressed: isBusy ? null : () => _showReportSheet(context, reporterId!),
+            icon: const Icon(Icons.report_problem_outlined),
+            label: const Text('Laporkan'),
+          ),
       ],
+    );
+  }
+
+  Future<void> _showReportSheet(BuildContext context, String reporterId) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _ReportFormSheet(umkm: umkm, reporterId: reporterId),
     );
   }
 
@@ -1222,6 +1259,176 @@ class _ItemTileWithIcon extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ReportFormSheet extends StatefulWidget {
+  const _ReportFormSheet({
+    required this.umkm,
+    required this.reporterId,
+  });
+
+  final Umkm umkm;
+  final String reporterId;
+
+  @override
+  State<_ReportFormSheet> createState() => _ReportFormSheetState();
+}
+
+class _ReportFormSheetState extends State<_ReportFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _descriptionController = TextEditingController();
+  String _tipeLaporan = 'Tutup Permanen';
+  XFile? _selectedPhoto;
+  String? _photoErrorText;
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    final formValid = _formKey.currentState?.validate() ?? false;
+    
+    setState(() {
+      if (_selectedPhoto == null) {
+        _photoErrorText = 'Foto bukti wajib disertakan.';
+      } else {
+        _photoErrorText = null;
+      }
+    });
+
+    if (!formValid || _selectedPhoto == null) return;
+
+    final provider = context.read<UmkmProvider>();
+    final success = await provider.submitReport(
+      umkmId: widget.umkm.id,
+      reporterId: widget.reporterId,
+      tipeLaporan: _tipeLaporan,
+      deskripsi: _descriptionController.text.trim(),
+      fotoBukti: _selectedPhoto!,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Laporan Anda berhasil dikirim dan akan diverifikasi.')),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.reportMutationErrorMessage ?? 'Gagal mengirim laporan.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSubmitting = context.watch<UmkmProvider>().isSubmittingReport;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          4,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Laporkan Masalah',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: const Color(AppColors.textPrimary),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.umkm.namaUsaha,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: const Color(AppColors.textMuted),
+                ),
+              ),
+              const SizedBox(height: 20),
+              DropdownButtonFormField<String>(
+                initialValue: _tipeLaporan,
+                decoration: const InputDecoration(labelText: 'Tipe Masalah'),
+                items: const [
+                  DropdownMenuItem(value: 'Tutup Permanen', child: Text('Tutup Permanen')),
+                  DropdownMenuItem(value: 'Pindah Lokasi', child: Text('Pindah Lokasi')),
+                  DropdownMenuItem(value: 'Lainnya', child: Text('Lainnya')),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _tipeLaporan = val);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Deskripsi / Alasan',
+                  hintText: 'Tulis kronologi atau alasan laporan secara detail',
+                ),
+                maxLines: 3,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'Deskripsi wajib diisi.'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Foto Bukti Konkrit',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(AppColors.textPrimary),
+                ),
+              ),
+              const SizedBox(height: 8),
+              PhotoPickerField(
+                selectedFile: _selectedPhoto,
+                enabled: !isSubmitting,
+                onChanged: (file) {
+                  setState(() {
+                    _selectedPhoto = file;
+                    if (file != null) _photoErrorText = null;
+                  });
+                },
+                onRemoved: () {
+                  setState(() {
+                    _selectedPhoto = null;
+                  });
+                },
+              ),
+              if (_photoErrorText != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  _photoErrorText!,
+                  style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                ),
+              ],
+              const SizedBox(height: 24),
+              PrimaryButton(
+                onPressed: isSubmitting ? null : _submit,
+                isLoading: isSubmitting,
+                label: 'Kirim Laporan',
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -46,7 +46,9 @@ class UmkmService {
     status,
     created_at,
     updated_at,
-    detail_kategori
+    detail_kategori,
+    hari_operasional,
+    jam_operasional
   ''';
 
   SupabaseClient get _client => AppSupabase.client;

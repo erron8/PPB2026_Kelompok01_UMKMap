@@ -21,6 +21,8 @@ class Umkm {
     required this.createdAt,
     required this.updatedAt,
     this.detailKategori,
+    this.hariOperasional,
+    this.jamOperasional,
   });
 
   final String id;
@@ -44,6 +46,8 @@ class Umkm {
   final DateTime createdAt;
   final DateTime updatedAt;
   final Map<String, dynamic>? detailKategori;
+  final String? hariOperasional;
+  final String? jamOperasional;
 
   factory Umkm.fromJson(Map<String, dynamic> json) {
     return Umkm(
@@ -68,6 +72,8 @@ class Umkm {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       detailKategori: json['detail_kategori'] as Map<String, dynamic>?,
+      hariOperasional: json['hari_operasional'] as String?,
+      jamOperasional: json['jam_operasional'] as String?,
     );
   }
 
@@ -90,6 +96,8 @@ class Umkm {
       'foto_url': fotoUrl,
       'status': status,
       'detail_kategori': detailKategori,
+      'hari_operasional': hariOperasional,
+      'jam_operasional': jamOperasional,
     };
   }
 
@@ -115,6 +123,8 @@ class Umkm {
     DateTime? createdAt,
     DateTime? updatedAt,
     Map<String, dynamic>? detailKategori,
+    String? hariOperasional,
+    String? jamOperasional,
   }) {
     return Umkm(
       id: id ?? this.id,
@@ -138,6 +148,8 @@ class Umkm {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       detailKategori: detailKategori ?? this.detailKategori,
+      hariOperasional: hariOperasional ?? this.hariOperasional,
+      jamOperasional: jamOperasional ?? this.jamOperasional,
     );
   }
 
@@ -167,6 +179,8 @@ class UmkmInput {
     required this.longitude,
     this.fotoUrl,
     this.detailKategori,
+    this.hariOperasional,
+    this.jamOperasional,
   });
 
   final String ownerId;
@@ -185,6 +199,8 @@ class UmkmInput {
   final double longitude;
   final String? fotoUrl;
   final Map<String, dynamic>? detailKategori;
+  final String? hariOperasional;
+  final String? jamOperasional;
 
   UmkmInput withFotoUrl(String? value) {
     return UmkmInput(
@@ -204,6 +220,8 @@ class UmkmInput {
       longitude: longitude,
       fotoUrl: value,
       detailKategori: detailKategori,
+      hariOperasional: hariOperasional,
+      jamOperasional: jamOperasional,
     );
   }
 
@@ -225,6 +243,8 @@ class UmkmInput {
       longitude: longitude,
       fotoUrl: fotoUrl,
       detailKategori: value,
+      hariOperasional: hariOperasional,
+      jamOperasional: jamOperasional,
     );
   }
 
@@ -248,6 +268,8 @@ class UmkmInput {
       'foto_url': fotoUrl,
       'status': 'pending',
       'detail_kategori': detailKategori,
+      'hari_operasional': hariOperasional,
+      'jam_operasional': jamOperasional,
     };
   }
 
@@ -268,6 +290,8 @@ class UmkmInput {
       'longitude': longitude,
       'foto_url': fotoUrl,
       'detail_kategori': detailKategori,
+      'hari_operasional': hariOperasional,
+      'jam_operasional': jamOperasional,
     };
   }
 }

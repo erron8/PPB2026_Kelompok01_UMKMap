@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../database/supabase_client.dart';
 import '../models/kategori.dart';
 import '../models/umkm.dart';
+import '../models/umkm_report.dart';
+import '../services/report_service.dart';
 import '../services/storage_service.dart';
 import '../services/umkm_service.dart';
 import '../utils/app_exception.dart';
@@ -13,12 +16,15 @@ class UmkmProvider extends ChangeNotifier {
   UmkmProvider({
     UmkmService service = const UmkmService(),
     StorageService? storageService,
+    ReportService reportService = const ReportService(),
   }) : _service = service,
-       _storageService = storageService;
+       _storageService = storageService,
+       _reportService = reportService;
 
   static const pageSize = 20;
 
   final UmkmService _service;
+  final ReportService _reportService;
   StorageService? _storageService;
 
   StorageService get _storage => _storageService ??= StorageService();
@@ -28,6 +34,7 @@ class UmkmProvider extends ChangeNotifier {
   List<Umkm> dashboardRecentItems = [];
   List<Umkm> pendingVerificationItems = [];
   List<Kategori> categories = [];
+  List<UmkmReport> pendingReports = [];
   Umkm? selectedUmkm;
   DashboardStats? stats;
 
@@ -39,7 +46,9 @@ class UmkmProvider extends ChangeNotifier {
   bool isLoadingDashboardRecent = false;
   bool isLoadingPendingVerification = false;
   bool isLoadingMapItems = false;
+  bool isLoadingReports = false;
   bool isSubmitting = false;
+  bool isSubmittingReport = false;
   bool isDeleting = false;
   bool isChangingStatus = false;
   bool hasMore = true;
@@ -51,7 +60,9 @@ class UmkmProvider extends ChangeNotifier {
   String? dashboardRecentErrorMessage;
   String? pendingVerificationErrorMessage;
   String? mapErrorMessage;
+  String? reportsErrorMessage;
   String? mutationErrorMessage;
+  String? reportMutationErrorMessage;
 
   String searchQuery = '';
   int? kategoriId;
@@ -545,6 +556,90 @@ class UmkmProvider extends ChangeNotifier {
       await _storage.deletePhotoByUrl(photoUrl);
     } on AppException {
       // The row write outcome matters more than best-effort storage cleanup.
+    }
+  }
+
+  Future<void> loadPendingReports() async {
+    isLoadingReports = true;
+    reportsErrorMessage = null;
+    notifyListeners();
+
+    try {
+      try {
+        final _ = AppSupabase.client;
+      } catch (_) {
+        // Supabase is not initialized (e.g., in unit tests)
+        pendingReports = [];
+        return;
+      }
+      pendingReports = await _reportService.fetchPendingReports();
+    } on AppException catch (e) {
+      reportsErrorMessage = e.message;
+    } catch (e) {
+      reportsErrorMessage = e.toString();
+    } finally {
+      isLoadingReports = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> submitReport({
+    required String umkmId,
+    required String reporterId,
+    required String tipeLaporan,
+    required String deskripsi,
+    required XFile fotoBukti,
+  }) async {
+    isSubmittingReport = true;
+    reportMutationErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = 'reports/$reporterId/$timestamp.jpg';
+      final fotoUrl = await _storage.uploadCustomPath(file: fotoBukti, path: path);
+
+      await _reportService.insertReport(
+        umkmId: umkmId,
+        reporterId: reporterId,
+        tipeLaporan: tipeLaporan,
+        deskripsi: deskripsi,
+        fotoBuktiUrl: fotoUrl,
+      );
+      return true;
+    } on AppException catch (e) {
+      reportMutationErrorMessage = e.message;
+      return false;
+    } catch (e) {
+      reportMutationErrorMessage = e.toString();
+      return false;
+    } finally {
+      isSubmittingReport = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateReportStatus({
+    required String reportId,
+    required String status,
+  }) async {
+    isChangingStatus = true;
+    mutationErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _reportService.updateReportStatus(reportId: reportId, status: status);
+      pendingReports.removeWhere((r) => r.id == reportId);
+      return true;
+    } on AppException catch (e) {
+      mutationErrorMessage = e.message;
+      return false;
+    } catch (e) {
+      mutationErrorMessage = e.toString();
+      return false;
+    } finally {
+      isChangingStatus = false;
+      notifyListeners();
     }
   }
 }

@@ -34,6 +34,20 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
   final _namaPemilikController = TextEditingController();
   final _deskripsiController = TextEditingController();
   final _alamatJalanController = TextEditingController();
+  final _hariOperasionalController = TextEditingController();
+  final _jamOperasionalController = TextEditingController();
+
+  TimeOfDay? _jamBuka;
+  TimeOfDay? _jamTutup;
+  bool _buka24Jam = false;
+
+  final List<String> _hariOptions = [
+    'Setiap Hari',
+    'Senin - Jumat',
+    'Senin - Sabtu',
+    'Sabtu - Minggu',
+    'Kustom...',
+  ];
 
   late LatLng _initialMapPoint;
   int? _selectedKategoriId;
@@ -67,6 +81,20 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
       _namaPemilikController.text = initialUmkm.namaPemilik;
       _deskripsiController.text = initialUmkm.deskripsi ?? '';
       _alamatJalanController.text = initialUmkm.alamatJalan ?? '';
+      _hariOperasionalController.text = initialUmkm.hariOperasional ?? '';
+      _jamOperasionalController.text = initialUmkm.jamOperasional ?? '';
+      
+      final initialJam = initialUmkm.jamOperasional ?? '';
+      if (initialJam == '24 Jam') {
+        _buka24Jam = true;
+      } else if (initialJam.contains(' - ')) {
+        final parts = initialJam.split(' - ');
+        if (parts.length == 2) {
+          _jamBuka = _parseTimeOfDay(parts[0]);
+          _jamTutup = _parseTimeOfDay(parts[1]);
+        }
+      }
+
       _selectedKategoriId = initialUmkm.kategoriId;
       _selectedProvince = Wilayah(
         id: initialUmkm.provinsiId,
@@ -93,6 +121,135 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
     });
   }
 
+  TimeOfDay? _parseTimeOfDay(String time) {
+    try {
+      final parts = time.split(':');
+      if (parts.length == 2) {
+        return TimeOfDay(
+          hour: int.parse(parts[0].trim()),
+          minute: int.parse(parts[1].trim()),
+        );
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String? get _selectedHariOption {
+    final text = _hariOperasionalController.text;
+    if (text.isEmpty) return null;
+    if (_hariOptions.contains(text) && text != 'Kustom...') return text;
+    return 'Kustom...';
+  }
+
+  Future<void> _selectCustomDays() async {
+    final days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+    final selected = <String>[];
+    final currentText = _hariOperasionalController.text;
+    if (currentText.isNotEmpty &&
+        currentText != 'Setiap Hari' &&
+        currentText != 'Senin - Jumat' &&
+        currentText != 'Senin - Sabtu' &&
+        currentText != 'Sabtu - Minggu') {
+      for (final d in currentText.split(', ')) {
+        if (days.contains(d)) selected.add(d);
+      }
+    }
+
+    final result = await showDialog<List<String>>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Pilih Hari Operasional'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: days.map((day) {
+                    return CheckboxListTile(
+                      title: Text(day),
+                      value: selected.contains(day),
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (val == true) {
+                            selected.add(day);
+                          } else {
+                            selected.remove(day);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, selected),
+                  child: const Text('Pilih'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _hariOperasionalController.text = result.join(', ');
+      });
+    }
+  }
+
+  Future<void> _selectTime(bool isOpenTime) async {
+    final initialTime = isOpenTime
+        ? (_jamBuka ?? const TimeOfDay(hour: 8, minute: 0))
+        : (_jamTutup ?? const TimeOfDay(hour: 17, minute: 0));
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+    if (picked != null) {
+      setState(() {
+        if (isOpenTime) {
+          _jamBuka = picked;
+        } else {
+          _jamTutup = picked;
+        }
+        _updateJamController();
+      });
+    }
+  }
+
+  void _updateJamController() {
+    if (_buka24Jam) {
+      _jamOperasionalController.text = '24 Jam';
+    } else if (_jamBuka != null && _jamTutup != null) {
+      _jamOperasionalController.text =
+          '${_formatTimeOfDay(_jamBuka!)} - ${_formatTimeOfDay(_jamTutup!)}';
+    } else {
+      _jamOperasionalController.text = '';
+    }
+  }
+
   // Create mode: drop the pin on the device's current location so a new UMKM
   // is not silently saved at the region default center. If GPS is
   // denied/unavailable, keep the default center and let the user place the pin
@@ -116,6 +273,8 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
     _namaPemilikController.dispose();
     _deskripsiController.dispose();
     _alamatJalanController.dispose();
+    _hariOperasionalController.dispose();
+    _jamOperasionalController.dispose();
     super.dispose();
   }
 
@@ -124,6 +283,7 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
     final provider = context.watch<UmkmProvider>();
     final isSubmitting = provider.isSubmitting;
     final categories = provider.categories;
+    final theme = Theme.of(context);
 
     if (!_detailsInitialized && widget.initialUmkm != null && categories.isNotEmpty) {
       _initializeCategoryDetails(categories);
@@ -232,6 +392,118 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
                           controller: _alamatJalanController,
                           label: 'Alamat Jalan',
                           textInputAction: TextInputAction.next,
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedHariOption,
+                          decoration: const InputDecoration(
+                            labelText: 'Hari Operasional',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          items: _hariOptions.map((opt) {
+                            return DropdownMenuItem(value: opt, child: Text(opt));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val == 'Kustom...') {
+                              _selectCustomDays();
+                            } else if (val != null) {
+                              setState(() {
+                                _hariOperasionalController.text = val;
+                              });
+                            }
+                          },
+                        ),
+                        if (_selectedHariOption == 'Kustom...') ...[
+                          const SizedBox(height: 6),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              'Hari Kustom: ${_hariOperasionalController.text}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: const Color(AppColors.primary),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Jam Operasional',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(AppColors.textPrimary),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: _buka24Jam ? null : () => _selectTime(true),
+                                    child: InputDecorator(
+                                      decoration: const InputDecoration(
+                                        labelText: 'Jam Buka',
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                      child: Text(
+                                        _buka24Jam
+                                            ? '--:--'
+                                            : (_jamBuka != null
+                                                ? _formatTimeOfDay(_jamBuka!)
+                                                : 'Pilih Jam Buka'),
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          color: _buka24Jam
+                                              ? const Color(AppColors.textSubtle)
+                                              : const Color(AppColors.textPrimary),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: _buka24Jam ? null : () => _selectTime(false),
+                                    child: InputDecorator(
+                                      decoration: const InputDecoration(
+                                        labelText: 'Jam Tutup',
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      ),
+                                      child: Text(
+                                        _buka24Jam
+                                            ? '--:--'
+                                            : (_jamTutup != null
+                                                ? _formatTimeOfDay(_jamTutup!)
+                                                : 'Pilih Jam Tutup'),
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          color: _buka24Jam
+                                              ? const Color(AppColors.textSubtle)
+                                              : const Color(AppColors.textPrimary),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Buka 24 Jam'),
+                              value: _buka24Jam,
+                              onChanged: (val) {
+                                setState(() {
+                                  _buka24Jam = val ?? false;
+                                  _updateJamController();
+                                });
+                              },
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         WilayahDropdowns(
@@ -411,6 +683,8 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
       longitude: _selectedPoint!.longitude,
       fotoUrl: existingPhotoUrl,
       detailKategori: detailKategori,
+      hariOperasional: _emptyToNull(_hariOperasionalController.text),
+      jamOperasional: _emptyToNull(_jamOperasionalController.text),
     );
 
     final saved = initialUmkm == null

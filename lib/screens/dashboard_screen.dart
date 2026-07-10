@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/umkm.dart';
+import '../models/umkm_report.dart';
 import '../providers/auth_provider.dart';
 import '../providers/umkm_provider.dart';
 import '../services/umkm_service.dart';
@@ -19,6 +20,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  int _adminSelectedTab = 0;
+
   @override
   void initState() {
     super.initState();
@@ -37,7 +40,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Future.wait([
       provider.loadDashboardStats(ownerId: ownerId),
       provider.loadDashboardRecent(ownerId: ownerId),
-      if (user.isAdmin) provider.loadPendingVerification(),
+      if (user.isAdmin) ...[
+        provider.loadPendingVerification(),
+        provider.loadPendingReports(),
+      ],
     ]);
   }
 
@@ -65,6 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: RefreshIndicator(
         onRefresh: _loadDashboardData,
         child: ListView(
+          cacheExtent: 9999,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             DecoratedBox(
@@ -90,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             if (!isGuest) ...[
               _StatsSection(
                 stats: provider.stats,
@@ -98,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 errorMessage: provider.statsErrorMessage,
                 onRetry: _loadDashboardData,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
             ],
             const _MenuGrid(),
             if (isGuest) ...[
@@ -106,18 +113,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const _GuestPrompt(),
             ] else ...[
               if (auth.isAdmin) ...[
-                const SizedBox(height: 24),
-                _UmkmSection(
-                  title: 'Menunggu Verifikasi',
-                  items: provider.pendingVerificationItems,
-                  isLoading: provider.isLoadingPendingVerification,
-                  errorMessage: provider.pendingVerificationErrorMessage,
-                  emptyMessage: 'Tidak ada UMKM yang menunggu verifikasi.',
-                  onRetry: () =>
-                      context.read<UmkmProvider>().loadPendingVerification(),
-                ),
+                const SizedBox(height: 10),
+                if (provider.pendingReports.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Verifikasi UMKM'),
+                          selected: _adminSelectedTab == 0,
+                          onSelected: (val) {
+                            if (val) setState(() => _adminSelectedTab = 0);
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        ChoiceChip(
+                          label: const Text('Laporan Masalah'),
+                          selected: _adminSelectedTab == 1,
+                          onSelected: (val) {
+                            if (val) setState(() => _adminSelectedTab = 1);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (provider.pendingReports.isEmpty || _adminSelectedTab == 0)
+                  _UmkmSection(
+                    title: 'Menunggu Verifikasi',
+                    items: provider.pendingVerificationItems,
+                    isLoading: provider.isLoadingPendingVerification,
+                    errorMessage: provider.pendingVerificationErrorMessage,
+                    emptyMessage: 'Tidak ada UMKM yang menunggu verifikasi.',
+                    onRetry: () =>
+                        context.read<UmkmProvider>().loadPendingVerification(),
+                  )
+                else
+                  _ReportsSection(
+                    reports: provider.pendingReports,
+                    isLoading: provider.isLoadingReports,
+                    errorMessage: provider.reportsErrorMessage,
+                    onRetry: () =>
+                        context.read<UmkmProvider>().loadPendingReports(),
+                  ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 10),
               _UmkmSection(
                 title: 'UMKM Terbaru',
                 items: provider.dashboardRecentItems,
@@ -680,6 +721,303 @@ class _EmptyMessage extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Center(child: Text(message, textAlign: TextAlign.center)),
+      ),
+    );
+  }
+}
+
+class _ReportsSection extends StatelessWidget {
+  const _ReportsSection({
+    required this.reports,
+    required this.isLoading,
+    required this.errorMessage,
+    required this.onRetry,
+  });
+
+  final List<UmkmReport> reports;
+  final bool isLoading;
+  final String? errorMessage;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Laporan Pending',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: const Color(AppColors.textPrimary),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (isLoading && reports.isEmpty)
+          const SizedBox(
+            height: 72,
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (errorMessage != null && reports.isEmpty)
+          _InlineError(message: errorMessage!, onRetry: onRetry)
+        else if (reports.isEmpty)
+          const _EmptyMessage(message: 'Tidak ada laporan pending.')
+        else
+          ...reports.map((report) => _CompactReportTile(report: report)),
+      ],
+    );
+  }
+}
+
+class _CompactReportTile extends StatelessWidget {
+  const _CompactReportTile({required this.report});
+
+  final UmkmReport report;
+
+  void _showDetail(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _ReportDetailSheet(report: report),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.radiusCard),
+        onTap: () => _showDetail(context),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Color(AppColors.primaryContainer),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.report_problem_outlined,
+                  color: Color(AppColors.primary),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      report.tipeLaporan,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'UMKM: ${report.umkmNama ?? "Tidak diketahui"}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color(AppColors.textSubtle),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Pelapor: ${report.reporterNama ?? "Tidak diketahui"}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color(AppColors.textSubtle),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: Color(AppColors.oliveGrey),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportDetailSheet extends StatelessWidget {
+  const _ReportDetailSheet({required this.report});
+
+  final UmkmReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final provider = context.watch<UmkmProvider>();
+    final isBusy = provider.isChangingStatus;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Detail Laporan Masalah',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: const Color(AppColors.textPrimary),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _DetailRow(label: 'UMKM', value: report.umkmNama ?? 'Tidak diketahui'),
+            _DetailRow(label: 'Pelapor', value: report.reporterNama ?? 'Tidak diketahui'),
+            _DetailRow(label: 'Tipe Masalah', value: report.tipeLaporan),
+            _DetailRow(label: 'Deskripsi', value: report.deskripsi),
+            const SizedBox(height: 16),
+            Text(
+              'Foto Bukti:',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.radiusCard),
+              child: SizedBox(
+                height: 180,
+                width: double.infinity,
+                child: CachedNetworkImage(
+                  imageUrl: report.fotoBuktiUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, _) => ColoredBox(
+                    color: colorScheme.primaryContainer,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, _, error) => ColoredBox(
+                    color: colorScheme.primaryContainer,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      size: 48,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colorScheme.error,
+                      side: BorderSide(color: colorScheme.error),
+                      minimumSize: const Size(0, 48),
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: isBusy
+                        ? null
+                        : () => _updateStatus(context, 'rejected'),
+                    child: const Text('Tolak Laporan'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: isBusy
+                        ? null
+                        : () => _updateStatus(context, 'approved'),
+                    child: const Text('Setujui Laporan'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateStatus(BuildContext context, String status) async {
+    final provider = context.read<UmkmProvider>();
+    final success = await provider.updateReportStatus(
+      reportId: report.id,
+      status: status,
+    );
+
+    if (!context.mounted) return;
+
+    if (success) {
+      final msg = status == 'approved'
+          ? 'Laporan disetujui. Pelapor mendapatkan reward +15 Poin.'
+          : 'Laporan ditolak.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            provider.mutationErrorMessage ?? 'Gagal memperbarui status laporan.',
+          ),
+        ),
+      );
+    }
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(AppColors.textSubtle),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(AppColors.textPrimary),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
