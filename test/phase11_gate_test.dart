@@ -23,21 +23,21 @@ import 'package:umkmap/utils/constants.dart';
 
 const _owner = AppUser(
   id: 'owner-1',
-  email: 'pemilik1@umkmap.test',
+  email: 'pemilik1@example.com',
   fullName: 'Pemilik Satu',
   role: 'pemilik',
 );
 
 const _newOwner = AppUser(
   id: 'owner-new',
-  email: 'pemilik-baru@umkmap.test',
+  email: 'pemilik-baru@example.com',
   fullName: 'Pemilik Baru',
   role: 'pemilik',
 );
 
 const _admin = AppUser(
   id: 'admin-1',
-  email: 'admin@umkmap.test',
+  email: 'admin@example.com',
   fullName: 'Admin UMKMap',
   role: 'admin',
 );

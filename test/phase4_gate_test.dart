@@ -29,7 +29,7 @@ import 'package:umkmap/utils/app_router.dart';
 
 const _user = AppUser(
   id: 'u-1',
-  email: 'owner@umkmap.test',
+  email: 'owner@example.com',
   fullName: 'Owner Satu',
   role: 'pemilik',
 );
@@ -108,7 +108,7 @@ Future<String> _signInMessageFrom(AuthException error) async {
   );
 
   try {
-    await service.signIn(email: 'owner@umkmap.test', password: 'password123');
+    await service.signIn(email: 'owner@example.com', password: 'test-password');
     fail('Expected AuthService.signIn to throw AppException');
   } on AppException catch (appError) {
     return appError.message;
@@ -129,8 +129,8 @@ Future<String> _signUpMessageFrom(AuthException error) async {
 
   try {
     await service.signUp(
-      email: 'owner@umkmap.test',
-      password: 'password123',
+      email: 'owner@example.com',
+      password: 'test-password',
       fullName: 'Owner Satu',
     );
     fail('Expected AuthService.signUp to throw AppException');
@@ -464,7 +464,7 @@ void main() {
       authService: _FakeAuthService(signInResult: _user),
       sessionService: const SessionService(),
     );
-    await provider.login('owner@umkmap.test', 'password123', rememberMe: true);
+    await provider.login('owner@example.com', 'test-password', rememberMe: true);
     final router = await _pumpRouterApp(tester, provider);
 
     router.go('/login');
