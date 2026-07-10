@@ -20,6 +20,7 @@ class Umkm {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.detailKategori,
   });
 
   final String id;
@@ -42,6 +43,7 @@ class Umkm {
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final Map<String, dynamic>? detailKategori;
 
   factory Umkm.fromJson(Map<String, dynamic> json) {
     return Umkm(
@@ -65,6 +67,7 @@ class Umkm {
       status: json['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      detailKategori: json['detail_kategori'] as Map<String, dynamic>?,
     );
   }
 
@@ -86,6 +89,7 @@ class Umkm {
       'longitude': longitude,
       'foto_url': fotoUrl,
       'status': status,
+      'detail_kategori': detailKategori,
     };
   }
 
@@ -110,6 +114,7 @@ class Umkm {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Map<String, dynamic>? detailKategori,
   }) {
     return Umkm(
       id: id ?? this.id,
@@ -132,6 +137,7 @@ class Umkm {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      detailKategori: detailKategori ?? this.detailKategori,
     );
   }
 
@@ -160,6 +166,7 @@ class UmkmInput {
     required this.latitude,
     required this.longitude,
     this.fotoUrl,
+    this.detailKategori,
   });
 
   final String ownerId;
@@ -177,6 +184,7 @@ class UmkmInput {
   final double latitude;
   final double longitude;
   final String? fotoUrl;
+  final Map<String, dynamic>? detailKategori;
 
   UmkmInput withFotoUrl(String? value) {
     return UmkmInput(
@@ -195,6 +203,28 @@ class UmkmInput {
       latitude: latitude,
       longitude: longitude,
       fotoUrl: value,
+      detailKategori: detailKategori,
+    );
+  }
+
+  UmkmInput withDetailKategori(Map<String, dynamic>? value) {
+    return UmkmInput(
+      ownerId: ownerId,
+      namaUsaha: namaUsaha,
+      namaPemilik: namaPemilik,
+      kategoriId: kategoriId,
+      deskripsi: deskripsi,
+      alamatJalan: alamatJalan,
+      provinsiId: provinsiId,
+      provinsiNama: provinsiNama,
+      kotaId: kotaId,
+      kotaNama: kotaNama,
+      kecamatanId: kecamatanId,
+      kecamatanNama: kecamatanNama,
+      latitude: latitude,
+      longitude: longitude,
+      fotoUrl: fotoUrl,
+      detailKategori: value,
     );
   }
 
@@ -217,6 +247,7 @@ class UmkmInput {
       'longitude': longitude,
       'foto_url': fotoUrl,
       'status': 'pending',
+      'detail_kategori': detailKategori,
     };
   }
 
@@ -236,6 +267,7 @@ class UmkmInput {
       'latitude': latitude,
       'longitude': longitude,
       'foto_url': fotoUrl,
+      'detail_kategori': detailKategori,
     };
   }
 }

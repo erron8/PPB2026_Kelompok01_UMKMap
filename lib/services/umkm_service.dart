@@ -45,7 +45,8 @@ class UmkmService {
     foto_url,
     status,
     created_at,
-    updated_at
+    updated_at,
+    detail_kategori
   ''';
 
   SupabaseClient get _client => AppSupabase.client;

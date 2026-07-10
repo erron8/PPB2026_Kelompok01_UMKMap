@@ -253,6 +253,29 @@ class UmkmProvider extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>?> _uploadCategoryPhotos(String umkmId, Map<String, dynamic>? detailKategori) async {
+    if (detailKategori == null) return null;
+    
+    final Map<String, dynamic> result = Map<String, dynamic>.from(detailKategori);
+    final items = result['items'] as List?;
+    if (items == null) return result;
+    
+    final updatedItems = [];
+    for (int i = 0; i < items.length; i++) {
+      final item = Map<String, dynamic>.from(items[i] as Map);
+      final xfile = item['_foto_file'];
+      if (xfile is XFile) {
+        final path = 'kategori-details/$umkmId/${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+        final url = await _storage.uploadCustomPath(file: xfile, path: path);
+        item['foto_url'] = url;
+      }
+      item.remove('_foto_file');
+      updatedItems.add(item);
+    }
+    result['items'] = updatedItems;
+    return result;
+  }
+
   Future<Umkm?> createUmkm({
     required UmkmInput input,
     required XFile photo,
@@ -263,9 +286,10 @@ class UmkmProvider extends ChangeNotifier {
     _setSubmitting(true);
     try {
       uploadedPhotoUrl = await _storage.uploadPhoto(file: photo, umkmId: id);
+      final finalDetailKategori = await _uploadCategoryPhotos(id, input.detailKategori);
       final created = await _service.create(
         id: id,
-        input: input.withFotoUrl(uploadedPhotoUrl),
+        input: input.withFotoUrl(uploadedPhotoUrl).withDetailKategori(finalDetailKategori),
       );
       selectedUmkm = created;
       _upsertItem(created);
@@ -295,10 +319,12 @@ class UmkmProvider extends ChangeNotifier {
       if (photo != null) {
         uploadedPhotoUrl = await _storage.uploadPhoto(file: photo, umkmId: id);
       }
-
+      final finalDetailKategori = await _uploadCategoryPhotos(id, input.detailKategori);
       final updated = await _service.update(
         id: id,
-        input: input.withFotoUrl(uploadedPhotoUrl ?? input.fotoUrl),
+        input: input
+            .withFotoUrl(uploadedPhotoUrl ?? input.fotoUrl)
+            .withDetailKategori(finalDetailKategori),
       );
       selectedUmkm = updated;
       _upsertItem(updated);

@@ -47,6 +47,15 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
   String? _photoErrorText;
   String? _coordinateErrorText;
 
+  bool _detailsInitialized = false;
+
+  final List<_KulinerItemInput> _kulinerItems = [];
+  final List<_JasaItemInput> _jasaItems = [];
+  final List<_FashionItemInput> _fashionItems = [];
+  final List<_KerajinanItemInput> _kerajinanItems = [];
+  final List<_PertanianItemInput> _pertanianItems = [];
+  final List<_LainnyaItemInput> _lainnyaItems = [];
+
   bool get _isEditMode => widget.initialUmkm != null;
 
   @override
@@ -114,6 +123,28 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<UmkmProvider>();
     final isSubmitting = provider.isSubmitting;
+    final categories = provider.categories;
+
+    if (!_detailsInitialized && widget.initialUmkm != null && categories.isNotEmpty) {
+      _initializeCategoryDetails(categories);
+      _detailsInitialized = true;
+    }
+
+    final String catName = _getCategoryName(_selectedKategoriId, categories);
+    Widget? dynamicSection;
+    if (catName.toLowerCase() == 'kuliner') {
+      dynamicSection = _buildKulinerForm();
+    } else if (catName.toLowerCase() == 'jasa') {
+      dynamicSection = _buildJasaForm();
+    } else if (catName.toLowerCase() == 'fashion') {
+      dynamicSection = _buildFashionForm();
+    } else if (catName.toLowerCase() == 'kerajinan') {
+      dynamicSection = _buildKerajinanForm();
+    } else if (catName.toLowerCase() == 'pertanian') {
+      dynamicSection = _buildPertanianForm();
+    } else if (catName.toLowerCase() == 'lainnya') {
+      dynamicSection = _buildLainnyaForm();
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(_isEditMode ? 'Edit UMKM' : 'Tambah UMKM')),
@@ -224,6 +255,15 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
                         ),
                       ],
                     ),
+                    if (dynamicSection != null) ...[
+                      const SizedBox(height: 12),
+                      _FormSectionCard(
+                        title: 'Detail Spesifik Kategori ($catName)',
+                        children: [
+                          dynamicSection,
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     _FormSectionCard(
                       title: 'Lokasi di Peta',
@@ -293,6 +333,67 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
     final existingPhotoUrl = _existingPhotoRemoved
         ? null
         : initialUmkm?.fotoUrl;
+
+    final provider = context.read<UmkmProvider>();
+    final categories = provider.categories;
+    final catName = _getCategoryName(_selectedKategoriId, categories).toLowerCase();
+
+    Map<String, dynamic>? detailKategori;
+    if (catName == 'kuliner') {
+      detailKategori = {
+        'items': _kulinerItems.map((it) => {
+          'nama': it.nama.trim(),
+          'harga': it.harga,
+          'foto_url': it.isPhotoRemoved ? null : it.fotoUrl,
+          '_foto_file': it.fotoFile,
+        }).toList()
+      };
+    } else if (catName == 'jasa') {
+      detailKategori = {
+        'items': _jasaItems.map((it) => {
+          'nama': it.nama.trim(),
+          'harga_mulai': it.hargaMulai,
+          'deskripsi': it.deskripsi.trim(),
+        }).toList()
+      };
+    } else if (catName == 'fashion') {
+      detailKategori = {
+        'items': _fashionItems.map((it) => {
+          'nama': it.nama.trim(),
+          'harga': it.harga,
+          'ukuran': it.ukuran,
+          'foto_url': it.isPhotoRemoved ? null : it.fotoUrl,
+          '_foto_file': it.fotoFile,
+        }).toList()
+      };
+    } else if (catName == 'kerajinan') {
+      detailKategori = {
+        'items': _kerajinanItems.map((it) => {
+          'nama': it.nama.trim(),
+          'harga': it.harga,
+          'bahan': it.bahan.trim(),
+          'foto_url': it.isPhotoRemoved ? null : it.fotoUrl,
+          '_foto_file': it.fotoFile,
+        }).toList()
+      };
+    } else if (catName == 'pertanian') {
+      detailKategori = {
+        'items': _pertanianItems.map((it) => {
+          'nama': it.nama.trim(),
+          'harga': it.harga,
+          'panen': it.panen.trim(),
+          'deskripsi': it.deskripsi.trim(),
+        }).toList()
+      };
+    } else if (catName == 'lainnya') {
+      detailKategori = {
+        'items': _lainnyaItems.map((it) => {
+          'key': it.key.trim(),
+          'value': it.value.trim(),
+        }).toList()
+      };
+    }
+
     final input = UmkmInput(
       ownerId: ownerId,
       namaUsaha: _namaUsahaController.text.trim(),
@@ -309,9 +410,9 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
       latitude: _selectedPoint!.latitude,
       longitude: _selectedPoint!.longitude,
       fotoUrl: existingPhotoUrl,
+      detailKategori: detailKategori,
     );
 
-    final provider = context.read<UmkmProvider>();
     final saved = initialUmkm == null
         ? await provider.createUmkm(input: input, photo: _selectedPhoto!)
         : await provider.updateUmkm(
@@ -414,6 +515,593 @@ class _UmkmFormScreenState extends State<UmkmFormScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+
+  String _getCategoryName(int? id, List<Kategori> categories) {
+    if (id == null) return '';
+    final cat = categories.firstWhere(
+      (c) => c.id == id,
+      orElse: () => const Kategori(id: -1, nama: ''),
+    );
+    if (cat.id != -1) return cat.nama;
+    return widget.initialUmkm?.kategoriNama ?? '';
+  }
+
+  void _initializeCategoryDetails(List<Kategori> categories) {
+    final detail = widget.initialUmkm?.detailKategori;
+    if (detail == null) return;
+    
+    final catName = _getCategoryName(widget.initialUmkm?.kategoriId, categories).toLowerCase();
+    
+    setState(() {
+      if (catName == 'kuliner') {
+        final items = detail['items'] as List?;
+        if (items != null) {
+          _kulinerItems.clear();
+          for (final it in items) {
+            final map = it as Map<String, dynamic>;
+            _kulinerItems.add(_KulinerItemInput(
+              nama: map['nama'] as String? ?? '',
+              harga: map['harga'] as int? ?? 0,
+              fotoUrl: map['foto_url'] as String?,
+            ));
+          }
+        }
+      } else if (catName == 'jasa') {
+        final items = detail['items'] as List?;
+        if (items != null) {
+          _jasaItems.clear();
+          for (final it in items) {
+            final map = it as Map<String, dynamic>;
+            _jasaItems.add(_JasaItemInput(
+              nama: map['nama'] as String? ?? '',
+              hargaMulai: map['harga_mulai'] as int? ?? 0,
+              deskripsi: map['deskripsi'] as String? ?? '',
+            ));
+          }
+        }
+      } else if (catName == 'fashion') {
+        final items = detail['items'] as List?;
+        if (items != null) {
+          _fashionItems.clear();
+          for (final it in items) {
+            final map = it as Map<String, dynamic>;
+            _fashionItems.add(_FashionItemInput(
+              nama: map['nama'] as String? ?? '',
+              harga: map['harga'] as int? ?? 0,
+              ukuran: List<String>.from(map['ukuran'] as List? ?? []),
+              fotoUrl: map['foto_url'] as String?,
+            ));
+          }
+        }
+      } else if (catName == 'kerajinan') {
+        final items = detail['items'] as List?;
+        if (items != null) {
+          _kerajinanItems.clear();
+          for (final it in items) {
+            final map = it as Map<String, dynamic>;
+            _kerajinanItems.add(_KerajinanItemInput(
+              nama: map['nama'] as String? ?? '',
+              harga: map['harga'] as int? ?? 0,
+              bahan: map['bahan'] as String? ?? '',
+              fotoUrl: map['foto_url'] as String?,
+            ));
+          }
+        }
+      } else if (catName == 'pertanian') {
+        final items = detail['items'] as List?;
+        if (items != null) {
+          _pertanianItems.clear();
+          for (final it in items) {
+            final map = it as Map<String, dynamic>;
+            _pertanianItems.add(_PertanianItemInput(
+              nama: map['nama'] as String? ?? '',
+              harga: map['harga'] as int? ?? 0,
+              panen: map['panen'] as String? ?? '',
+              deskripsi: map['deskripsi'] as String? ?? '',
+            ));
+          }
+        }
+      } else if (catName == 'lainnya') {
+        final items = detail['items'] as List?;
+        if (items != null) {
+          _lainnyaItems.clear();
+          for (final it in items) {
+            final map = it as Map<String, dynamic>;
+            _lainnyaItems.add(_LainnyaItemInput(
+              key: map['key'] as String? ?? '',
+              value: map['value'] as String? ?? '',
+            ));
+          }
+        }
+      }
+    });
+  }
+
+  Widget _buildKulinerForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...List.generate(_kulinerItems.length, (index) {
+          final item = _kulinerItems[index];
+          return Card(
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(AppColors.hairline)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Menu #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(AppColors.error)),
+                        onPressed: () => setState(() => _kulinerItems.removeAt(index)),
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    initialValue: item.nama,
+                    decoration: const InputDecoration(labelText: 'Nama Makanan/Minuman'),
+                    onChanged: (val) => item.nama = val,
+                    validator: (val) => Validators.requiredText(val, 'Nama menu'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.harga > 0 ? item.harga.toString() : '',
+                    decoration: const InputDecoration(labelText: 'Harga (Rupiah)'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => item.harga = int.tryParse(val) ?? 0,
+                    validator: (val) => Validators.requiredText(val, 'Harga menu'),
+                  ),
+                  const SizedBox(height: 12),
+                  PhotoPickerField(
+                    label: 'Foto Makanan/Minuman',
+                    selectedFile: item.fotoFile,
+                    photoUrl: item.isPhotoRemoved ? null : item.fotoUrl,
+                    onChanged: (file) {
+                      setState(() {
+                        item.fotoFile = file;
+                        if (file != null) item.isPhotoRemoved = false;
+                      });
+                    },
+                    onRemoved: () {
+                      setState(() {
+                        item.isPhotoRemoved = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _kulinerItems.add(_KulinerItemInput())),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah Menu Andalan'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJasaForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...List.generate(_jasaItems.length, (index) {
+          final item = _jasaItems[index];
+          return Card(
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(AppColors.hairline)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Jasa/Layanan #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(AppColors.error)),
+                        onPressed: () => setState(() => _jasaItems.removeAt(index)),
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    initialValue: item.nama,
+                    decoration: const InputDecoration(labelText: 'Nama Jasa/Layanan'),
+                    onChanged: (val) => item.nama = val,
+                    validator: (val) => Validators.requiredText(val, 'Nama layanan'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.hargaMulai > 0 ? item.hargaMulai.toString() : '',
+                    decoration: const InputDecoration(labelText: 'Estimasi Harga Mulai (Rupiah)'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => item.hargaMulai = int.tryParse(val) ?? 0,
+                    validator: (val) => Validators.requiredText(val, 'Harga mulai'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.deskripsi,
+                    decoration: const InputDecoration(labelText: 'Deskripsi Singkat Jasa'),
+                    maxLines: 2,
+                    onChanged: (val) => item.deskripsi = val,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _jasaItems.add(_JasaItemInput())),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah Layanan Jasa'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFashionForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...List.generate(_fashionItems.length, (index) {
+          final item = _fashionItems[index];
+          return Card(
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(AppColors.hairline)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Produk Fashion #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(AppColors.error)),
+                        onPressed: () => setState(() => _fashionItems.removeAt(index)),
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    initialValue: item.nama,
+                    decoration: const InputDecoration(labelText: 'Nama Produk'),
+                    onChanged: (val) => item.nama = val,
+                    validator: (val) => Validators.requiredText(val, 'Nama produk'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.harga > 0 ? item.harga.toString() : '',
+                    decoration: const InputDecoration(labelText: 'Harga (Rupiah)'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => item.harga = int.tryParse(val) ?? 0,
+                    validator: (val) => Validators.requiredText(val, 'Harga produk'),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Pilihan Ukuran', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    children: ['S', 'M', 'L', 'XL', 'XXL'].map((size) {
+                      final isSelected = item.ukuran.contains(size);
+                      return FilterChip(
+                        label: Text(size),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              item.ukuran.add(size);
+                            } else {
+                              item.ukuran.remove(size);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  PhotoPickerField(
+                    label: 'Foto Produk',
+                    selectedFile: item.fotoFile,
+                    photoUrl: item.isPhotoRemoved ? null : item.fotoUrl,
+                    onChanged: (file) {
+                      setState(() {
+                        item.fotoFile = file;
+                        if (file != null) item.isPhotoRemoved = false;
+                      });
+                    },
+                    onRemoved: () {
+                      setState(() {
+                        item.isPhotoRemoved = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _fashionItems.add(_FashionItemInput())),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah Produk Fashion'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKerajinanForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...List.generate(_kerajinanItems.length, (index) {
+          final item = _kerajinanItems[index];
+          return Card(
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(AppColors.hairline)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Kerajinan #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(AppColors.error)),
+                        onPressed: () => setState(() => _kerajinanItems.removeAt(index)),
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    initialValue: item.nama,
+                    decoration: const InputDecoration(labelText: 'Nama Produk Kerajinan'),
+                    onChanged: (val) => item.nama = val,
+                    validator: (val) => Validators.requiredText(val, 'Nama produk'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.harga > 0 ? item.harga.toString() : '',
+                    decoration: const InputDecoration(labelText: 'Harga (Rupiah)'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => item.harga = int.tryParse(val) ?? 0,
+                    validator: (val) => Validators.requiredText(val, 'Harga produk'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.bahan,
+                    decoration: const InputDecoration(labelText: 'Bahan Utama'),
+                    onChanged: (val) => item.bahan = val,
+                    validator: (val) => Validators.requiredText(val, 'Bahan utama'),
+                  ),
+                  const SizedBox(height: 12),
+                  PhotoPickerField(
+                    label: 'Foto Kerajinan',
+                    selectedFile: item.fotoFile,
+                    photoUrl: item.isPhotoRemoved ? null : item.fotoUrl,
+                    onChanged: (file) {
+                      setState(() {
+                        item.fotoFile = file;
+                        if (file != null) item.isPhotoRemoved = false;
+                      });
+                    },
+                    onRemoved: () {
+                      setState(() {
+                        item.isPhotoRemoved = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _kerajinanItems.add(_KerajinanItemInput())),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah Produk Kerajinan'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPertanianForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...List.generate(_pertanianItems.length, (index) {
+          final item = _pertanianItems[index];
+          return Card(
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(AppColors.hairline)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Hasil Pertanian #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(AppColors.error)),
+                        onPressed: () => setState(() => _pertanianItems.removeAt(index)),
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    initialValue: item.nama,
+                    decoration: const InputDecoration(labelText: 'Nama Hasil Pertanian'),
+                    onChanged: (val) => item.nama = val,
+                    validator: (val) => Validators.requiredText(val, 'Nama hasil tani'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.harga > 0 ? item.harga.toString() : '',
+                    decoration: const InputDecoration(labelText: 'Harga per Satuan (Rupiah)'),
+                    keyboardType: TextInputType.number,
+                    onChanged: (val) => item.harga = int.tryParse(val) ?? 0,
+                    validator: (val) => Validators.requiredText(val, 'Harga satuan'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.panen,
+                    decoration: const InputDecoration(labelText: 'Musim Panen'),
+                    onChanged: (val) => item.panen = val,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.deskripsi,
+                    decoration: const InputDecoration(labelText: 'Deskripsi'),
+                    maxLines: 2,
+                    onChanged: (val) => item.deskripsi = val,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _pertanianItems.add(_PertanianItemInput())),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah Hasil Pertanian'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLainnyaForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...List.generate(_lainnyaItems.length, (index) {
+          final item = _lainnyaItems[index];
+          return Card(
+            color: Colors.white,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(AppColors.hairline)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Atribut #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(AppColors.error)),
+                        onPressed: () => setState(() => _lainnyaItems.removeAt(index)),
+                      ),
+                    ],
+                  ),
+                  TextFormField(
+                    initialValue: item.key,
+                    decoration: const InputDecoration(labelText: 'Nama Field (Key)'),
+                    onChanged: (val) => item.key = val,
+                    validator: (val) => Validators.requiredText(val, 'Nama field'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: item.value,
+                    decoration: const InputDecoration(labelText: 'Isi Field (Value)'),
+                    onChanged: (val) => item.value = val,
+                    validator: (val) => Validators.requiredText(val, 'Isi field'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _lainnyaItems.add(_LainnyaItemInput())),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah Atribut Kustom'),
+        ),
+      ],
+    );
+  }
+}
+
+class _KulinerItemInput {
+  _KulinerItemInput({this.nama = '', this.harga = 0, this.fotoUrl});
+  String nama;
+  int harga;
+  String? fotoUrl;
+  XFile? fotoFile;
+  bool isPhotoRemoved = false;
+}
+
+class _JasaItemInput {
+  _JasaItemInput({this.nama = '', this.hargaMulai = 0, this.deskripsi = ''});
+  String nama;
+  int hargaMulai;
+  String deskripsi;
+}
+
+class _FashionItemInput {
+  _FashionItemInput({this.nama = '', this.harga = 0, List<String>? ukuran, this.fotoUrl})
+      : ukuran = ukuran ?? [];
+  String nama;
+  int harga;
+  List<String> ukuran;
+  String? fotoUrl;
+  XFile? fotoFile;
+  bool isPhotoRemoved = false;
+}
+
+class _KerajinanItemInput {
+  _KerajinanItemInput({this.nama = '', this.harga = 0, this.bahan = '', this.fotoUrl});
+  String nama;
+  int harga;
+  String bahan;
+  String? fotoUrl;
+  XFile? fotoFile;
+  bool isPhotoRemoved = false;
+}
+
+class _PertanianItemInput {
+  _PertanianItemInput({this.nama = '', this.harga = 0, this.panen = '', this.deskripsi = ''});
+  String nama;
+  int harga;
+  String panen;
+  String deskripsi;
+}
+
+class _LainnyaItemInput {
+  _LainnyaItemInput({this.key = '', this.value = ''});
+  String key;
+  String value;
 }
 
 class _FormSectionCard extends StatelessWidget {

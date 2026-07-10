@@ -187,6 +187,7 @@ class _DetailContent extends StatelessWidget {
                           ),
                       ],
                     ),
+                    _CategoryDetailsSection(umkm: umkm),
                     const SizedBox(height: 24),
                     _SectionTitle(title: 'Lokasi'),
                     const SizedBox(height: 8),
@@ -898,6 +899,329 @@ class _Notice extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CategoryDetailsSection extends StatelessWidget {
+  const _CategoryDetailsSection({required this.umkm});
+
+  final Umkm umkm;
+
+  String _formatRupiah(int amount) {
+    final cleanAmount = amount.toString();
+    final parts = [];
+    int i = cleanAmount.length;
+    while (i > 3) {
+      parts.add(cleanAmount.substring(i - 3, i));
+      i -= 3;
+    }
+    if (i > 0) {
+      parts.add(cleanAmount.substring(0, i));
+    }
+    return 'Rp ${parts.reversed.join('.')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = umkm.detailKategori;
+    if (detail == null) return const SizedBox.shrink();
+
+    final items = detail['items'] as List?;
+    if (items == null || items.isEmpty) return const SizedBox.shrink();
+
+    final catName = (umkm.kategoriNama ?? '').toLowerCase();
+
+    String sectionTitle = 'Detail Spesifik';
+    if (catName == 'kuliner') {
+      sectionTitle = 'Menu Andalan';
+    } else if (catName == 'jasa') {
+      sectionTitle = 'Layanan Jasa';
+    } else if (catName == 'fashion') {
+      sectionTitle = 'Katalog Produk Fashion';
+    } else if (catName == 'kerajinan') {
+      sectionTitle = 'Katalog Kerajinan';
+    } else if (catName == 'pertanian') {
+      sectionTitle = 'Hasil Pertanian & Panen';
+    } else if (catName == 'lainnya') {
+      sectionTitle = 'Informasi Tambahan';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        _SectionTitle(title: sectionTitle),
+        const SizedBox(height: 8),
+        _DetailsCard(
+          children: [
+            if (catName == 'kuliner')
+              ...items.map((it) {
+                final map = it as Map;
+                final nama = map['nama'] as String? ?? '-';
+                final harga = map['harga'] as int? ?? 0;
+                final fotoUrl = map['foto_url'] as String?;
+                return _ItemTileWithPhoto(
+                  title: nama,
+                  subtitle: _formatRupiah(harga),
+                  photoUrl: fotoUrl,
+                  fallbackIcon: Icons.restaurant_menu,
+                );
+              })
+            else if (catName == 'jasa')
+              ...items.map((it) {
+                final map = it as Map;
+                final nama = map['nama'] as String? ?? '-';
+                final hargaMulai = map['harga_mulai'] as int? ?? 0;
+                final deskripsi = map['deskripsi'] as String? ?? '';
+                return _ItemTileWithIcon(
+                  title: nama,
+                  subtitle: 'Mulai dari ${_formatRupiah(hargaMulai)}',
+                  description: deskripsi.isNotEmpty ? deskripsi : null,
+                  icon: Icons.design_services_outlined,
+                );
+              })
+            else if (catName == 'fashion')
+              ...items.map((it) {
+                final map = it as Map;
+                final nama = map['nama'] as String? ?? '-';
+                final harga = map['harga'] as int? ?? 0;
+                final ukuran = List<String>.from(map['ukuran'] as List? ?? []);
+                final fotoUrl = map['foto_url'] as String?;
+                return _ItemTileWithPhoto(
+                  title: nama,
+                  subtitle: _formatRupiah(harga),
+                  photoUrl: fotoUrl,
+                  extra: ukuran.isNotEmpty ? 'Ukuran: ${ukuran.join(', ')}' : null,
+                  fallbackIcon: Icons.checkroom_outlined,
+                );
+              })
+            else if (catName == 'kerajinan')
+              ...items.map((it) {
+                final map = it as Map;
+                final nama = map['nama'] as String? ?? '-';
+                final harga = map['harga'] as int? ?? 0;
+                final bahan = map['bahan'] as String? ?? '-';
+                final fotoUrl = map['foto_url'] as String?;
+                return _ItemTileWithPhoto(
+                  title: nama,
+                  subtitle: _formatRupiah(harga),
+                  photoUrl: fotoUrl,
+                  extra: 'Bahan: $bahan',
+                  fallbackIcon: Icons.brush_outlined,
+                );
+              })
+            else if (catName == 'pertanian')
+              ...items.map((it) {
+                final map = it as Map;
+                final nama = map['nama'] as String? ?? '-';
+                final harga = map['harga'] as int? ?? 0;
+                final panen = map['panen'] as String? ?? '';
+                final deskripsi = map['deskripsi'] as String? ?? '';
+                return _ItemTileWithIcon(
+                  title: nama,
+                  subtitle: '${_formatRupiah(harga)} / satuan',
+                  description: [
+                    if (panen.isNotEmpty) 'Musim Panen: $panen',
+                    if (deskripsi.isNotEmpty) deskripsi,
+                  ].join('\n'),
+                  icon: Icons.agriculture_outlined,
+                );
+              })
+            else
+              ...items.map((it) {
+                final map = it as Map;
+                final key = map['key'] as String? ?? '';
+                final value = map['value'] as String? ?? '';
+                return _ItemTileWithIcon(
+                  title: key,
+                  subtitle: value,
+                  icon: Icons.info_outline,
+                );
+              }),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DetailsCard extends StatelessWidget {
+  const _DetailsCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.radiusCard),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              children[i],
+              if (i != children.length - 1)
+                const Divider(height: 1, color: Color(AppColors.hairline)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ItemTileWithPhoto extends StatelessWidget {
+  const _ItemTileWithPhoto({
+    required this.title,
+    required this.subtitle,
+    this.photoUrl,
+    this.extra,
+    required this.fallbackIcon,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? photoUrl;
+  final String? extra;
+  final IconData fallbackIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: const Color(AppColors.primaryContainer),
+              borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
+              child: photoUrl == null || photoUrl!.isEmpty
+                  ? Icon(fallbackIcon, color: const Color(AppColors.primary), size: 24)
+                  : CachedNetworkImage(
+                      imageUrl: photoUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, _, error) => Icon(fallbackIcon, color: const Color(AppColors.primary), size: 24),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(AppColors.textPrimary),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(AppColors.primary),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                if (extra != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    extra!,
+                    style: const TextStyle(
+                      color: Color(AppColors.textSubtle),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemTileWithIcon extends StatelessWidget {
+  const _ItemTileWithIcon({
+    required this.title,
+    required this.subtitle,
+    this.description,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? description;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(AppColors.primaryContainer),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: const Color(AppColors.primary), size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(AppColors.textPrimary),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(AppColors.primary),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                if (description != null && description!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    description!,
+                    style: const TextStyle(
+                      color: Color(AppColors.textSubtle),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -272,6 +272,14 @@ class _FakeStorageService implements StorageService {
   Future<void> deletePhotoByUrl(String publicUrl) async {
     deletedUrls.add(publicUrl);
   }
+
+  @override
+  Future<String> uploadCustomPath({
+    required XFile file,
+    required String path,
+  }) async {
+    return 'https://example.test/storage/$path';
+  }
 }
 
 class _FetchCall {

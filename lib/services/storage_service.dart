@@ -51,6 +51,35 @@ class StorageService {
     }
   }
 
+  Future<String> uploadCustomPath({
+    required XFile file,
+    required String path,
+  }) async {
+    try {
+      final bytes = await _compressPhoto(file);
+      final bucket = _client.storage.from(AppBuckets.umkmPhotos);
+
+      await bucket.uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(
+          cacheControl: '3600',
+          contentType: 'image/jpeg',
+          upsert: false,
+        ),
+      );
+
+      return bucket.getPublicUrl(path);
+    } on AppException {
+      rethrow;
+    } on Object catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal mengunggah foto. Coba lagi.',
+      );
+    }
+  }
+
   Future<void> deletePhotoByUrl(String publicUrl) async {
     if (publicUrl.trim().isEmpty) return;
 

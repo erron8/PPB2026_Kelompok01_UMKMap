@@ -220,6 +220,14 @@ class _NoopStorageService implements StorageService {
 
   @override
   Future<void> deletePhotoByUrl(String publicUrl) async {}
+
+  @override
+  Future<String> uploadCustomPath({
+    required XFile file,
+    required String path,
+  }) async {
+    return '';
+  }
 }
 
 class _FetchCall {

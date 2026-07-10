@@ -46,6 +46,7 @@ void main() {
       'longitude': json['longitude'],
       'foto_url': json['foto_url'],
       'status': json['status'],
+      'detail_kategori': null,
     });
     expect(umkm.toInsertJson().containsKey('id'), isFalse);
     expect(umkm.toInsertJson().containsKey('created_at'), isFalse);
