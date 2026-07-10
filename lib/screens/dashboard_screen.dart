@@ -212,7 +212,7 @@ class _StatsSection extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 1.55,
+      childAspectRatio: 1.3,
       children: [
         _StatCard(
           label: 'Total UMKM',
@@ -267,7 +267,7 @@ class _StatCard extends StatelessWidget {
               ),
               child: Icon(icon, color: colorScheme.primary, size: 22),
             ),
-            const Spacer(),
+            const SizedBox(height: 8),
             Text(
               '$value',
               style: theme.textTheme.headlineSmall?.copyWith(

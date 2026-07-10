@@ -73,6 +73,22 @@ class _FakeAuthService implements AuthService {
     if (error != null) throw error;
     return restoreUser;
   }
+
+  @override
+  Future<AppUser> updateProfile({
+    required String id,
+    required String fullName,
+    required String? phone,
+  }) async {
+    return AppUser(
+      id: id,
+      email: restoreUser?.email ?? 'owner@example.com',
+      fullName: fullName,
+      role: restoreUser?.role ?? 'pemilik',
+      poin: restoreUser?.poin ?? 0,
+      phone: phone,
+    );
+  }
 }
 
 Future<GoRouter> _pumpRouterApp(

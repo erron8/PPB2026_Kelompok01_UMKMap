@@ -114,6 +114,39 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateProfile({
+    required String fullName,
+    required String? phone,
+  }) async {
+    final currentUser = user;
+    if (currentUser == null) return false;
+
+    _setLoading(true);
+    try {
+      final updatedUser = await _authService.updateProfile(
+        id: currentUser.id,
+        fullName: fullName,
+        phone: phone,
+      );
+      user = AppUser(
+        id: updatedUser.id,
+        email: currentUser.email, // Retain email from current user session
+        fullName: updatedUser.fullName,
+        role: updatedUser.role,
+        poin: updatedUser.poin,
+        phone: updatedUser.phone,
+      );
+      errorMessage = null;
+      notifyListeners();
+      return true;
+    } on AppException catch (error) {
+      errorMessage = error.message;
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> logout() async {
     _setLoading(true);
     try {

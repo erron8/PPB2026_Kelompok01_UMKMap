@@ -133,11 +133,38 @@ class AuthService {
   Future<AppUser> _currentProfile(User user) async {
     final data = await _client
         .from(AppTables.profiles)
-        .select('id, full_name, role')
+        .select('id, full_name, role, poin, phone')
         .eq('id', user.id)
         .single();
 
     return AppUser.fromJson({...data, 'email': user.email ?? ''});
+  }
+
+  Future<AppUser> updateProfile({
+    required String id,
+    required String fullName,
+    required String? phone,
+  }) async {
+    try {
+      final data = await _client
+          .from(AppTables.profiles)
+          .update({
+            'full_name': fullName,
+            'phone': phone,
+          })
+          .eq('id', id)
+          .select('id, full_name, role, poin, phone')
+          .single();
+
+      return AppUser.fromJson(data);
+    } on PostgrestException catch (error) {
+      throw AppException(error.message);
+    } catch (error) {
+      throw AppException.fromObject(
+        error,
+        fallback: 'Gagal memperbarui profil.',
+      );
+    }
   }
 
   static String _signInAuthMessage(AuthException error) {

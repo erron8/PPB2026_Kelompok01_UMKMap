@@ -82,8 +82,9 @@ class _DetailContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final canEdit = auth.isAdmin || auth.user?.id == umkm.ownerId;
-    final canVerify = auth.isAdmin;
+    final isOwner = auth.user?.id == umkm.ownerId;
+    final canEdit = auth.isAdmin || isOwner;
+    final canVerify = !isOwner && (auth.isAdmin || (auth.user != null && auth.user!.poin > 200));
     final theme = Theme.of(context);
 
     return Scaffold(

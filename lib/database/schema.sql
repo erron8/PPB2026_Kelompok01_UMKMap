@@ -8,6 +8,7 @@ create table public.profiles (
   phone text,
   role text not null default 'pemilik'
     check (role in ('admin', 'pemilik')),
+  poin integer not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -94,12 +95,15 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- B) Keep updated_at fresh + reset status when a non-admin edits a row
+-- B) Keep updated_at fresh + prevent resetting status to pending for Super Users (points > 400)
 create or replace function public.umkm_before_update()
 returns trigger as $$
+declare
+  user_points int;
 begin
   new.updated_at := now();
-  if not public.is_admin() then
+  select poin into user_points from public.profiles where id = new.owner_id;
+  if not public.is_admin() and coalesce(user_points, 0) <= 400 then
     new.status := 'pending';
   end if;
   return new;
@@ -109,6 +113,69 @@ $$ language plpgsql security definer;
 create trigger umkm_before_update
   before update on public.umkm
   for each row execute function public.umkm_before_update();
+
+-- C) Auto-approve Super User UMKMs on INSERT (Tier 5: points > 400)
+create or replace function public.umkm_before_insert()
+returns trigger as $$
+declare
+  user_points int;
+begin
+  select poin into user_points from public.profiles where id = new.owner_id;
+  if coalesce(user_points, 0) > 400 then
+    new.status := 'verified';
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger umkm_before_insert
+  before insert on public.umkm
+  for each row execute function public.umkm_before_insert();
+
+-- D) Handle point rewards and penalties on insert or update
+create or replace function public.umkm_handle_points()
+returns trigger as $$
+declare
+  verifikator_id uuid;
+  verifikator_points int;
+  verifikator_role text;
+begin
+  -- 1. +20 Points for owner when status changes to 'verified'
+  if (TG_OP = 'INSERT' and new.status = 'verified') or 
+     (TG_OP = 'UPDATE' and new.status = 'verified' and old.status != 'verified') then
+    
+    update public.profiles
+    set poin = poin + 20
+    where id = new.owner_id;
+    
+    -- 2. +10 Points for verifikator (excluding self-verification) if they are Gold tier or above or Admin
+    verifikator_id := auth.uid();
+    if verifikator_id is not null and verifikator_id != new.owner_id then
+      select poin, role into verifikator_points, verifikator_role 
+      from public.profiles 
+      where id = verifikator_id;
+      
+      if verifikator_role = 'admin' or coalesce(verifikator_points, 0) > 200 then
+        update public.profiles
+        set poin = poin + 10
+        where id = verifikator_id;
+      end if;
+    end if;
+    
+  -- 3. -50 Points penalty for owner when status changes to 'rejected' from pending/verified
+  elsif (TG_OP = 'UPDATE' and new.status = 'rejected' and old.status != 'rejected') then
+    update public.profiles
+    set poin = greatest(0, poin - 50)
+    where id = new.owner_id;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger umkm_after_insert_or_update
+  after insert or update on public.umkm
+  for each row execute function public.umkm_handle_points();
 
 -- C) Seed categories
 insert into public.kategori_umkm (nama) values
