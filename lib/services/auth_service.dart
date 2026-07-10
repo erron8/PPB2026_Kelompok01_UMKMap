@@ -5,8 +5,28 @@ import '../models/app_user.dart';
 import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 
+typedef AuthSignInWithPassword =
+    Future<AuthResponse> Function({
+      required String email,
+      required String password,
+    });
+
+typedef AuthSignUpWithPassword =
+    Future<AuthResponse> Function({
+      required String email,
+      required String password,
+      Map<String, dynamic>? data,
+    });
+
 class AuthService {
-  const AuthService();
+  const AuthService({
+    AuthSignInWithPassword? signInWithPassword,
+    AuthSignUpWithPassword? signUpWithPassword,
+  }) : _signInWithPassword = signInWithPassword,
+       _signUpWithPassword = signUpWithPassword;
+
+  final AuthSignInWithPassword? _signInWithPassword;
+  final AuthSignUpWithPassword? _signUpWithPassword;
 
   SupabaseClient get _client => AppSupabase.client;
 
@@ -15,10 +35,13 @@ class AuthService {
     required String password,
   }) async {
     try {
-      final response = await _client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+      final signInWithPassword = _signInWithPassword;
+      final response = signInWithPassword == null
+          ? await _client.auth.signInWithPassword(
+              email: email,
+              password: password,
+            )
+          : await signInWithPassword(email: email, password: password);
       final user = response.user;
       if (user == null) {
         throw const AppException('Email atau kata sandi salah');
@@ -30,7 +53,7 @@ class AuthService {
       if (AppException.isNetworkError(error)) {
         throw const AppException(AppException.offlineMessage);
       }
-      throw const AppException('Email atau kata sandi salah');
+      throw AppException(_signInAuthMessage(error));
     } catch (error) {
       throw AppException.fromObject(error, fallback: 'Gagal masuk. Coba lagi.');
     }
@@ -42,11 +65,18 @@ class AuthService {
     required String fullName,
   }) async {
     try {
-      final response = await _client.auth.signUp(
-        email: email,
-        password: password,
-        data: {'full_name': fullName},
-      );
+      final signUpWithPassword = _signUpWithPassword;
+      final response = signUpWithPassword == null
+          ? await _client.auth.signUp(
+              email: email,
+              password: password,
+              data: {'full_name': fullName},
+            )
+          : await signUpWithPassword(
+              email: email,
+              password: password,
+              data: {'full_name': fullName},
+            );
       final user = response.user;
       if (user == null) {
         throw const AppException('Pendaftaran gagal. Coba lagi.');
@@ -63,7 +93,7 @@ class AuthService {
       if (AppException.isNetworkError(error)) {
         throw const AppException(AppException.offlineMessage);
       }
-      throw AppException(error.message);
+      throw AppException(_signUpAuthMessage(error));
     } catch (error) {
       throw AppException.fromObject(
         error,
@@ -108,5 +138,37 @@ class AuthService {
         .single();
 
     return AppUser.fromJson({...data, 'email': user.email ?? ''});
+  }
+
+  static String _signInAuthMessage(AuthException error) {
+    if (_isRateLimited(error)) {
+      return 'Terlalu banyak percobaan. Coba lagi nanti.';
+    }
+
+    switch (error.code) {
+      case 'email_not_confirmed':
+        return 'Email belum dikonfirmasi. Periksa email Anda untuk tautan konfirmasi.';
+      case 'invalid_credentials':
+      default:
+        return 'Email atau kata sandi salah';
+    }
+  }
+
+  static String _signUpAuthMessage(AuthException error) {
+    if (_isRateLimited(error)) {
+      return 'Terlalu banyak percobaan. Coba lagi nanti.';
+    }
+
+    switch (error.code) {
+      case 'user_already_exists':
+        return 'Email sudah terdaftar. Silakan masuk.';
+      default:
+        return 'Pendaftaran gagal. Coba lagi.';
+    }
+  }
+
+  static bool _isRateLimited(AuthException error) {
+    return error.code == 'over_email_send_rate_limit' ||
+        error.statusCode == '429';
   }
 }

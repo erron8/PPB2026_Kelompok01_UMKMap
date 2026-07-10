@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:umkmap/main.dart';
 import 'package:umkmap/models/kategori.dart';
 import 'package:umkmap/models/app_user.dart';
@@ -98,8 +99,143 @@ Future<GoRouter> _pumpRouterApp(
   return router;
 }
 
+Future<String> _signInMessageFrom(AuthException error) async {
+  final service = AuthService(
+    signInWithPassword:
+        ({required String email, required String password}) async {
+          throw error;
+        },
+  );
+
+  try {
+    await service.signIn(email: 'owner@umkmap.test', password: 'password123');
+    fail('Expected AuthService.signIn to throw AppException');
+  } on AppException catch (appError) {
+    return appError.message;
+  }
+}
+
+Future<String> _signUpMessageFrom(AuthException error) async {
+  final service = AuthService(
+    signUpWithPassword:
+        ({
+          required String email,
+          required String password,
+          Map<String, dynamic>? data,
+        }) async {
+          throw error;
+        },
+  );
+
+  try {
+    await service.signUp(
+      email: 'owner@umkmap.test',
+      password: 'password123',
+      fullName: 'Owner Satu',
+    );
+    fail('Expected AuthService.signUp to throw AppException');
+  } on AppException catch (appError) {
+    return appError.message;
+  }
+}
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  group('AuthService signIn AuthException mapping', () {
+    test('email_not_confirmed explains that confirmation is required', () async {
+      final message = await _signInMessageFrom(
+        const AuthException(
+          'Email not confirmed',
+          statusCode: '400',
+          code: 'email_not_confirmed',
+        ),
+      );
+
+      expect(
+        message,
+        'Email belum dikonfirmasi. Periksa email Anda untuk tautan konfirmasi.',
+      );
+    });
+
+    test('over_email_send_rate_limit explains the retry limit', () async {
+      final message = await _signInMessageFrom(
+        const AuthException(
+          'Email rate limit exceeded',
+          statusCode: '429',
+          code: 'over_email_send_rate_limit',
+        ),
+      );
+
+      expect(message, 'Terlalu banyak percobaan. Coba lagi nanti.');
+    });
+
+    test('HTTP 429 without code still explains the retry limit', () async {
+      final message = await _signInMessageFrom(
+        const AuthException('Too many requests', statusCode: '429'),
+      );
+
+      expect(message, 'Terlalu banyak percobaan. Coba lagi nanti.');
+    });
+
+    test('invalid_credentials keeps the existing login error', () async {
+      final message = await _signInMessageFrom(
+        const AuthException(
+          'Invalid login credentials',
+          statusCode: '400',
+          code: 'invalid_credentials',
+        ),
+      );
+
+      expect(message, 'Email atau kata sandi salah');
+    });
+
+    test('unknown auth code falls back to the login error', () async {
+      final message = await _signInMessageFrom(
+        const AuthException(
+          'Unexpected auth error',
+          statusCode: '400',
+          code: 'unexpected_auth_error',
+        ),
+      );
+
+      expect(message, 'Email atau kata sandi salah');
+    });
+  });
+
+  group('AuthService signUp AuthException mapping', () {
+    test('over_email_send_rate_limit explains the retry limit', () async {
+      final message = await _signUpMessageFrom(
+        const AuthException(
+          'Email rate limit exceeded',
+          statusCode: '429',
+          code: 'over_email_send_rate_limit',
+        ),
+      );
+
+      expect(message, 'Terlalu banyak percobaan. Coba lagi nanti.');
+    });
+
+    test('HTTP 429 without code still explains the retry limit', () async {
+      final message = await _signUpMessageFrom(
+        const AuthException('Too many requests', statusCode: '429'),
+      );
+
+      expect(message, 'Terlalu banyak percobaan. Coba lagi nanti.');
+    });
+
+    test('user_already_exists explains that the account exists', () async {
+      final message = await _signUpMessageFrom(
+        const AuthException(
+          'User already registered',
+          statusCode: '422',
+          code: 'user_already_exists',
+        ),
+      );
+
+      expect(message, 'Email sudah terdaftar. Silakan masuk.');
+    });
+  });
 
   test('T-01a: login with rememberMe persists session', () async {
     const session = SessionService();
