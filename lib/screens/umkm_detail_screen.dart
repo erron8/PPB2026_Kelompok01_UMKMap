@@ -82,9 +82,15 @@ class _DetailContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final isOwner = auth.user?.id == umkm.ownerId;
+    final user = auth.user;
+    final isOwner = user?.id == umkm.ownerId;
     final canEdit = auth.isAdmin || isOwner;
-    final canVerify = !isOwner && (auth.isAdmin || (auth.user != null && auth.user!.poin > 200));
+    final isGoldOrAbove = user != null && (
+      user.tier == 'Gold' ||
+      user.tier == 'Platinum' ||
+      user.tier == 'Super User'
+    );
+    final canVerify = auth.isAdmin || (isGoldOrAbove && !isOwner);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -319,7 +325,7 @@ class _ActionButtons extends StatelessWidget {
                 ? null
                 : () => _setStatus(context, 'verified', 'UMKM diverifikasi.'),
             icon: const Icon(Icons.verified_outlined),
-            label: const Text('Verifikasi'),
+            label: const Text('Setujui'),
           ),
         if (canVerify && umkm.status != 'rejected')
           OutlinedButton.icon(

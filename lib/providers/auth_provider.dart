@@ -134,6 +134,7 @@ class AuthProvider extends ChangeNotifier {
         fullName: updatedUser.fullName,
         role: updatedUser.role,
         poin: updatedUser.poin,
+        tier: updatedUser.tier,
         phone: updatedUser.phone,
       );
       errorMessage = null;

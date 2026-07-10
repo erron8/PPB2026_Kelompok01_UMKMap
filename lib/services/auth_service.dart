@@ -86,6 +86,7 @@ class AuthService {
         email: user.email ?? email,
         fullName: fullName,
         role: 'pemilik',
+        tier: 'Bronze',
       );
     } on AppException {
       rethrow;
@@ -133,7 +134,7 @@ class AuthService {
   Future<AppUser> _currentProfile(User user) async {
     final data = await _client
         .from(AppTables.profiles)
-        .select('id, full_name, role, poin, phone')
+        .select('id, full_name, role, poin, tier, phone')
         .eq('id', user.id)
         .single();
 
@@ -153,7 +154,7 @@ class AuthService {
             'phone': phone,
           })
           .eq('id', id)
-          .select('id, full_name, role, poin, phone')
+          .select('id, full_name, role, poin, tier, phone')
           .single();
 
       return AppUser.fromJson(data);

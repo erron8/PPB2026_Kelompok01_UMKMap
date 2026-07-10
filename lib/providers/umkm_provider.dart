@@ -367,6 +367,10 @@ class UmkmProvider extends ChangeNotifier {
     }
   }
 
+  Future<Umkm?> updateUmkmStatus(String umkmId, String statusBaru) {
+    return setStatus(id: umkmId, status: statusBaru);
+  }
+
   Future<void> _refreshAdminDashboard() async {
     await Future.wait([
       loadPendingVerification(),
