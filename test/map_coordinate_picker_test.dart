@@ -5,23 +5,44 @@ import 'package:umkmap/services/geocoding_service.dart';
 import 'package:umkmap/widgets/map_coordinate_picker.dart';
 
 void main() {
+  // The real form renders the picker inside a scrolling ListView; this catches
+  // regressions where the address-search button receives infinite width.
+  Widget wrap(Widget child) => MaterialApp(
+    home: Scaffold(body: ListView(children: [child])),
+  );
+
+  testWidgets('renders inside a ListView without layout errors', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      wrap(
+        MapCoordinatePicker(
+          geocodingService: _FakeGeocodingService(const []),
+          onChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.widgetWithText(FilledButton, 'Cari'), findsOneWidget);
+  });
+
   testWidgets('selecting an address search result updates the coordinate', (
     tester,
   ) async {
     LatLng? selectedPoint;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapCoordinatePicker(
-            geocodingService: _FakeGeocodingService(const [
-              GeocodeResult(
-                displayName: 'Jalan Sudirman, Denpasar',
-                point: LatLng(-8.670458, 115.212631),
-              ),
-            ]),
-            onChanged: (point) => selectedPoint = point,
-          ),
+      wrap(
+        MapCoordinatePicker(
+          geocodingService: _FakeGeocodingService(const [
+            GeocodeResult(
+              displayName: 'Jalan Sudirman, Denpasar',
+              point: LatLng(-8.670458, 115.212631),
+            ),
+          ]),
+          onChanged: (point) => selectedPoint = point,
         ),
       ),
     );

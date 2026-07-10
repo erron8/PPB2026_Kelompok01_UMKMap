@@ -131,28 +131,26 @@ class _MapCoordinatePickerState extends State<MapCoordinatePicker> {
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              height: 48,
-              child: FilledButton.tonalIcon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: colorScheme.primaryContainer,
-                  foregroundColor: colorScheme.primary,
-                  shape: const StadiumBorder(),
-                ),
-                onPressed: widget.enabled && !_isSearching
-                    ? _searchAddress
-                    : null,
-                icon: _isSearching
-                    ? SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colorScheme.primary,
-                        ),
-                      )
-                    : const Icon(Icons.search),
-                label: const Text('Cari'),
+            FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 48),
+                backgroundColor: colorScheme.primaryContainer,
+                foregroundColor: colorScheme.primary,
+                shape: const StadiumBorder(),
               ),
+              onPressed: widget.enabled && !_isSearching
+                  ? _searchAddress
+                  : null,
+              icon: _isSearching
+                  ? SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
+                    )
+                  : const Icon(Icons.search),
+              label: const Text('Cari'),
             ),
           ],
         ),
