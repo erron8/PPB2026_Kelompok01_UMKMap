@@ -107,7 +107,7 @@ class _MapScreenState extends State<MapScreen> {
                     (umkm) => Marker(
                       point: LatLng(umkm.latitude, umkm.longitude),
                       width: 140,
-                      height: 58,
+                      height: 80,
                       alignment: Alignment.topCenter,
                       child: _UmkmMarker(
                         label: umkm.namaUsaha,
