@@ -73,6 +73,7 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           location == '/splash' ||
           location == '/login' ||
           location == '/register' ||
+          location == '/dashboard' ||
           location == '/umkm' ||
           location.startsWith('/umkm/') ||
           location == '/map';

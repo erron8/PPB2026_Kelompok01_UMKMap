@@ -34,11 +34,7 @@ class AppTextField extends StatelessWidget {
       validator: validator,
       minLines: minLines,
       maxLines: obscureText ? 1 : maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        suffixIcon: suffixIcon,
-      ),
+      decoration: InputDecoration(labelText: label, suffixIcon: suffixIcon),
     );
   }
 }

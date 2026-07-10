@@ -1,8 +1,8 @@
 // Phase 11 gate — Dashboard & Profile (§6).
 //
 // Hermetic checks for role-scoped dashboard stats/recent rows and the live
-// SharedPreferences proof tile on Profile. Live DB count verification remains
-// part of the Phase 13 physical-device QA pass.
+// user information tile on Profile. Live DB count verification remains part of
+// the Phase 13 physical-device QA pass.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,14 +23,21 @@ import 'package:umkmap/utils/constants.dart';
 
 const _owner = AppUser(
   id: 'owner-1',
-  email: 'pemilik1@umkmap.test',
+  email: 'pemilik1@example.com',
   fullName: 'Pemilik Satu',
+  role: 'pemilik',
+);
+
+const _newOwner = AppUser(
+  id: 'owner-new',
+  email: 'pemilik-baru@example.com',
+  fullName: 'Pemilik Baru',
   role: 'pemilik',
 );
 
 const _admin = AppUser(
   id: 'admin-1',
-  email: 'admin@umkmap.test',
+  email: 'admin@example.com',
   fullName: 'Admin UMKMap',
   role: 'admin',
 );
@@ -38,21 +45,33 @@ const _admin = AppUser(
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('owner dashboard scopes stats and recent UMKM to owner id', (
+  testWidgets('owner dashboard uses global stats and recent UMKM', (
     tester,
   ) async {
     final service = _DashboardUmkmService();
     await _pumpDashboard(tester, user: _owner, service: service);
 
-    expect(service.statsOwnerIds, ['owner-1']);
-    expect(service.fetchCalls.single.ownerId, 'owner-1');
+    expect(service.statsOwnerIds, [null]);
+    expect(service.fetchCalls.single.ownerId, isNull);
     expect(service.fetchCalls.single.status, isNull);
     expect(find.text('Halo, Pemilik Satu'), findsOneWidget);
     expect(find.text('Pemilik'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pumpAndSettle();
-    expect(find.text('Warung Owner'), findsOneWidget);
+    expect(find.text('UMKM Global'), findsOneWidget);
+  });
+
+  testWidgets('new owner dashboard still sees global rows', (tester) async {
+    final service = _DashboardUmkmService();
+    await _pumpDashboard(tester, user: _newOwner, service: service);
+
+    expect(service.statsOwnerIds, [null]);
+    expect(service.fetchCalls.single.ownerId, isNull);
+    expect(find.text('Halo, Pemilik Baru'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(find.text('UMKM Global'), findsOneWidget);
   });
 
   testWidgets('admin dashboard uses global stats and shows pending section', (
@@ -62,6 +81,7 @@ void main() {
     await _pumpDashboard(tester, user: _admin, service: service);
 
     expect(service.statsOwnerIds, [null]);
+    expect(service.fetchCalls.map((call) => call.ownerId), [null, null]);
     expect(service.fetchCalls.map((call) => call.status), [null, 'pending']);
     expect(find.text('Halo, Admin UMKMap'), findsOneWidget);
     expect(find.text('Admin'), findsOneWidget);
@@ -71,7 +91,7 @@ void main() {
     expect(find.text('UMKM Pending'), findsOneWidget);
   });
 
-  testWidgets('profile shows all four SharedPreferences session values', (
+  testWidgets('profile shows user information without raw session keys', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
@@ -93,15 +113,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Session info'), findsOneWidget);
-    expect(find.text(PrefKeys.userId), findsOneWidget);
-    expect(find.text(_owner.id), findsOneWidget);
-    expect(find.text(PrefKeys.role), findsOneWidget);
-    expect(find.text(_owner.role), findsWidgets);
-    expect(find.text(PrefKeys.email), findsOneWidget);
+    expect(find.text('Informasi Pengguna'), findsOneWidget);
+    expect(find.text('Pemilik'), findsWidgets);
     expect(find.text(_owner.email), findsWidgets);
-    expect(find.text(PrefKeys.rememberMe), findsOneWidget);
-    expect(find.text('true'), findsOneWidget);
+    expect(find.text(PrefKeys.userId), findsNothing);
+    expect(find.text(_owner.id), findsNothing);
+    expect(find.text(PrefKeys.role), findsNothing);
+    expect(find.text(PrefKeys.email), findsNothing);
+    expect(find.text(PrefKeys.rememberMe), findsNothing);
+    expect(find.text('true'), findsNothing);
   });
 }
 

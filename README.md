@@ -1,92 +1,144 @@
 # UMKMap
 
+UMKMap adalah aplikasi mobile Flutter + Supabase untuk pendataan dan pencarian UMKM berbasis peta. Aplikasi ini dibuat untuk proyek akhir Mobile Device Programming (TI253311).
+
 ## Identitas Project
 
-**Nama aplikasi:** UMKMap
+**Nama aplikasi:** UMKMap  
+**Repository:** `PPB2026_Kelompok01_UMKMap`  
+**Package Android:** `com.ppb2026.umkmap`  
+**Versi release:** `1.0.0+14`
 
-**Nama kelompok:** Kelompok UMKMap
+**Anggota kelompok:**
 
-**Nama anggota:**
-
-- I GST. N. PT. Diana Putra Pratama (240040118)
-- I Made Agastya Wedastika (240040120)
-- I Made Bintang Kartika Yasa (240040054)
+| Nama | NIM |
+| --- | --- |
+| I GST. N. PT. Diana Putra Pratama | 240040118 |
+| I Made Agastya Wedastika | 240040120 |
+| I Made Bintang Kartika Yasa | 240040054 |
 
 ## Deskripsi
 
-UMKMap adalah aplikasi mobile berbasis Flutter dan Supabase untuk pendataan serta pencarian UMKM. Aplikasi ini membantu pemilik usaha atau petugas memasukkan data UMKM lengkap dengan foto, alamat administratif, koordinat lokasi, dan status verifikasi.
+UMKMap membantu pemilik usaha dan petugas lapangan mencatat data UMKM secara terstruktur: identitas usaha, pemilik, kategori, alamat administratif, koordinat GPS, foto usaha, dan status verifikasi. Data yang sudah diverifikasi dapat ditemukan publik melalui daftar UMKM dan peta OpenStreetMap.
 
 ## Permasalahan
 
-Pendataan UMKM masih sering dilakukan menggunakan kertas atau spreadsheet terpisah, sehingga data mudah tidak sinkron, sulit diverifikasi, dan kurang akurat secara lokasi. Selain itu, banyak UMKM belum memiliki visibilitas digital yang baik sehingga sulit ditemukan oleh masyarakat sekitar.
+Pendataan UMKM masih sering tersebar di kertas atau spreadsheet, sehingga data mudah tidak sinkron, sulit diverifikasi, dan tidak selalu memiliki titik koordinat yang akurat. Di sisi lain, UMKM lokal juga membutuhkan visibilitas digital agar lebih mudah ditemukan oleh masyarakat sekitar.
 
 ## Solusi
 
-UMKMap menyediakan aplikasi pendataan UMKM berbasis cloud dengan autentikasi pengguna, penyimpanan data di Supabase, pengunggahan foto usaha, pengambilan koordinat lokasi melalui peta, serta fitur verifikasi oleh admin. Data UMKM yang sudah terverifikasi dapat dilihat melalui daftar dan peta interaktif.
+UMKMap menyediakan satu aplikasi cloud-backed dengan login berbasis role, CRUD data UMKM, unggah foto, koordinat peta, workflow verifikasi admin, peta publik, dan kompas navigasi menuju lokasi UMKM. Sesi login disimpan dengan SharedPreferences sesuai kebutuhan proyek.
 
-## Fitur
+## Fitur Utama
 
-- Login, register, logout, dan penyimpanan sesi menggunakan SharedPreferences.
-- Role pengguna untuk admin dan pemilik UMKM.
-- CRUD data UMKM: tambah, lihat, ubah, dan hapus data usaha.
-- Verifikasi data UMKM oleh admin.
-- Pengambilan foto usaha menggunakan kamera.
-- Daftar UMKM dengan pencarian dan filter.
-- Peta OpenStreetMap untuk menampilkan lokasi UMKM.
-- Pemilihan koordinat UMKM melalui peta.
-- Kompas navigasi menuju lokasi UMKM.
-- Dropdown wilayah Indonesia bertingkat: provinsi, kota/kabupaten, dan kecamatan.
-- Penyimpanan data di Supabase Postgres dan foto di Supabase Storage.
+| Kebutuhan wajib | Implementasi di UMKMap |
+| --- | --- |
+| Login dan session | Register, login, logout, auto-login, remember me, dan penyimpanan sesi dengan SharedPreferences |
+| CRUD data | Tambah, lihat, ubah, hapus UMKM berbasis Supabase Postgres |
+| Multi-page navigation | 9 route: splash, login, register, dashboard, list, detail, form, map, profile |
+| Camera | Ambil foto usaha dari kamera, kompres, lalu unggah ke Supabase Storage |
+| Map dan location | OpenStreetMap, marker UMKM verified, user location, dan picker koordinat |
+| Sensor | Kompas fungsional yang mengarah ke UMKM tujuan dan menampilkan jarak |
+| API web service | Dropdown wilayah Indonesia bertingkat dari API emsifa, dengan fallback asset |
+| Cloud database | Supabase Auth, Postgres, Storage, RLS, policy, trigger, dan seed kategori |
 
-## Teknologi
+## Tech Stack
 
-- Flutter
-- Dart
-- Supabase Auth
-- Supabase Postgres
-- Supabase Storage
-- SharedPreferences
-- Provider
-- GoRouter
-- OpenStreetMap dengan `flutter_map`
-- Geolocator
-- Flutter Compass
-- Image Picker
-- Flutter Image Compress
-- HTTP API Wilayah Indonesia
+- Flutter, Dart, Material 3
+- Supabase Auth, Supabase Postgres, Supabase Storage
+- SharedPreferences untuk session lokal
+- Provider untuk state management
+- GoRouter untuk named route dan guard
+- `flutter_map` + OpenStreetMap untuk peta
+- `geolocator` untuk lokasi GPS
+- `flutter_compass` untuk heading sensor
+- `image_picker` dan `flutter_image_compress` untuk foto usaha
+- `http` untuk API wilayah Indonesia dan geocoding Nominatim
+- `cached_network_image` untuk foto di list/detail
 
-## Cara Instalasi
+## Screenshot dan Bukti QA
+
+Hasil regression QA lengkap ada di [`report/qa-phase13.md`](report/qa-phase13.md). File tersebut mencatat T-01 sampai T-15 dengan status 15/15 PASS, termasuk tes live Supabase, kamera, map, GPS, offline state, dan kompas pada perangkat fisik.
+
+Screenshot deliverable tersimpan di [`report/screenshots/`](report/screenshots/):
+
+| Bukti fitur | Layar yang disarankan |
+| --- | --- |
+| Login | [`login.png`](report/screenshots/login.png) |
+| Dashboard owner | [`dashboard-owner.png`](report/screenshots/dashboard-owner.png) |
+| Session SharedPreferences | [`profile-session.png`](report/screenshots/profile-session.png) |
+| CRUD/list | [`umkm-list.png`](report/screenshots/umkm-list.png) |
+| CRUD/detail | [`umkm-detail.png`](report/screenshots/umkm-detail.png) |
+| CRUD/form | [`umkm-form.png`](report/screenshots/umkm-form.png) |
+| Map dan location | [`map.png`](report/screenshots/map.png) |
+| Sensor kompas | [`compass.png`](report/screenshots/compass.png) |
+| Offline handling | [`offline.png`](report/screenshots/offline.png) |
+| Admin verification | [`admin-verification.png`](report/screenshots/admin-verification.png) |
+
+## Instalasi dan Menjalankan
 
 1. Pastikan Flutter SDK, Android SDK, dan JDK sudah terpasang.
-2. Clone atau buka repository project ini.
-3. Masuk ke folder aplikasi:
+2. Masuk ke folder aplikasi:
 
    ```bash
    cd umkmap
    ```
 
-4. Install dependency:
+3. Install dependency:
 
    ```bash
    flutter pub get
    ```
 
-5. Jalankan aplikasi dengan konfigurasi Supabase:
+4. Jalankan aplikasi dengan dart-define Supabase:
 
    ```bash
    flutter run \
-     --dart-define=SUPABASE_URL=isi_url_supabase \
-     --dart-define=SUPABASE_ANON_KEY=isi_anon_key_supabase
+     --dart-define=SUPABASE_URL=https://PROJECT_ID.supabase.co \
+     --dart-define=SUPABASE_ANON_KEY=SUPABASE_ANON_KEY
    ```
 
-6. Untuk membuat APK debug:
+5. Alternatif lokal menggunakan file ignored `env.json`:
 
    ```bash
-   flutter build apk --debug
+   flutter run --dart-define-from-file=env.json
    ```
+
+## Build APK Release
+
+```bash
+flutter build apk --release --dart-define-from-file=env.json
+cp build/app/outputs/flutter-apk/app-release.apk PPB2026_Kelompok01.apk
+```
+
+APK final lokal berada di `PPB2026_Kelompok01.apk`. File APK tidak dimasukkan ke git karena ukurannya besar; unggah APK sebagai GitHub Release asset saat publikasi.
+
+## Ringkasan Database
+
+Tabel utama:
+
+- `profiles`: profil pengguna dan role (`admin` / `pemilik`)
+- `kategori_umkm`: kategori seed (`Kuliner`, `Fashion`, `Kerajinan`, `Jasa`, `Pertanian`, `Lainnya`)
+- `umkm`: data usaha, alamat administratif, koordinat, foto, status verifikasi
+
+Keamanan:
+
+- RLS aktif pada `profiles` dan `umkm`
+- Guest hanya membaca UMKM `verified`
+- Pengguna terautentikasi dapat membaca semua status UMKM untuk mendukung dashboard, daftar internal, dan verifikasi; perubahan data tetap dibatasi oleh policy owner/admin
+- Pemilik membuat/mengubah/menghapus data sendiri
+- Admin dapat memverifikasi semua data
+- Trigger signup otomatis membuat row `profiles`
+- Trigger update mengatur `updated_at` dan mengembalikan status ke `pending` ketika pemilik mengubah data
+
+SQL lengkap ada di [`lib/database/schema.sql`](lib/database/schema.sql).
 
 ## Pembagian Tugas
 
-- I GST. N. PT. Diana Putra Pratama: Supabase, auth, routing.
-- I Made Agastya Wedastika: CRUD UMKM, kamera, region API, README.
-- I Made Bintang Kartika Yasa: map, lokasi, compass, UI polish.
+Pembagian berikut mengikuti bukti commit lokal saat README ini ditulis. `git shortlog -sne --all` menampilkan seluruh commit aplikasi pada author `errondotsol <howlingdxd@gmail.com>` dengan 38 commit.
+
+| Anggota / author commit | Bukti commit | Kontribusi yang terlihat di commit |
+| --- | --- |
+| I Made Agastya Wedastika / `errondotsol <howlingdxd@gmail.com>` | 38 commits | Bootstrap Flutter, Supabase/auth/session, CRUD UMKM, camera/storage, API wilayah, map/location, compass, dashboard/profile, hardening, UI polish, QA, README, release deliverables |
+| I GST. N. PT. Diana Putra Pratama | Tidak ada commit dengan author terpisah di history lokal | Tidak dapat diverifikasi dari commit history lokal |
+| I Made Bintang Kartika Yasa | Tidak ada commit dengan author terpisah di history lokal | Tidak dapat diverifikasi dari commit history lokal |

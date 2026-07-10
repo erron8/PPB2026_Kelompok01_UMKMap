@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/constants.dart';
+
 class CompassArrow extends StatefulWidget {
   const CompassArrow({
     super.key,
@@ -55,8 +57,7 @@ class _CompassArrowState extends State<CompassArrow> {
       child: DecoratedBox(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: colorScheme.primaryContainer,
-          border: Border.all(color: colorScheme.primary.withValues(alpha: .2)),
+          color: colorScheme.secondary,
         ),
         child: Center(
           child: AnimatedRotation(
@@ -67,7 +68,7 @@ class _CompassArrowState extends State<CompassArrow> {
               widget.arrived ? Icons.check_circle : Icons.navigation,
               size: widget.size * .56,
               color: widget.arrived
-                  ? Colors.green.shade700
+                  ? const Color(AppColors.statusVerifiedText)
                   : colorScheme.primary,
             ),
           ),

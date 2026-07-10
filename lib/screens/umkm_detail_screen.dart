@@ -13,6 +13,7 @@ import '../providers/umkm_provider.dart';
 import '../services/compass_service.dart';
 import '../services/location_service.dart';
 import '../utils/formatters.dart';
+import '../utils/constants.dart';
 import '../widgets/compass_arrow.dart';
 import '../widgets/loading_and_error.dart';
 import '../widgets/status_chip.dart';
@@ -88,81 +89,104 @@ class _DetailContent extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Detail UMKM')),
       body: ListView(
+        padding: EdgeInsets.zero,
         children: [
           _PhotoHeader(umkm: umkm),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Transform.translate(
+            offset: const Offset(0, -24),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(AppColors.background),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppRadii.radiusSheet),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            umkm.namaUsaha,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                umkm.namaUsaha,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: const Color(AppColors.textPrimary),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                umkm.kategoriNama ??
+                                    'Kategori ${umkm.kategoriId}',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            umkm.kategoriNama ?? 'Kategori ${umkm.kategoriId}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 12),
+                        StatusChip(status: umkm.status),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    StatusChip(status: umkm.status),
+                    const SizedBox(height: 16),
+                    _ActionButtons(
+                      umkm: umkm,
+                      canEdit: canEdit,
+                      canVerify: canVerify,
+                    ),
+                    const SizedBox(height: 24),
+                    _SectionTitle(title: 'Informasi Usaha'),
+                    const SizedBox(height: 8),
+                    _InfoCard(
+                      children: [
+                        _InfoRow(
+                          icon: Icons.person_outline,
+                          label: 'Pemilik',
+                          value: umkm.namaPemilik,
+                        ),
+                        _InfoRow(
+                          icon: Icons.place_outlined,
+                          label: 'Alamat',
+                          value: Formatters.address(umkm),
+                        ),
+                        _InfoRow(
+                          icon: Icons.my_location,
+                          label: 'Koordinat',
+                          value: Formatters.coordinates(
+                            umkm.latitude,
+                            umkm.longitude,
+                          ),
+                        ),
+                        _InfoRow(
+                          icon: Icons.update,
+                          label: 'Diperbarui',
+                          value: Formatters.date(umkm.updatedAt),
+                        ),
+                        if (umkm.deskripsi != null &&
+                            umkm.deskripsi!.trim().isNotEmpty)
+                          _InfoRow(
+                            icon: Icons.notes_outlined,
+                            label: 'Deskripsi',
+                            value: umkm.deskripsi!,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _SectionTitle(title: 'Lokasi'),
+                    const SizedBox(height: 8),
+                    _MiniMap(umkm: umkm),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _ActionButtons(
-                  umkm: umkm,
-                  canEdit: canEdit,
-                  canVerify: canVerify,
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Informasi Usaha'),
-                const SizedBox(height: 8),
-                _InfoRow(
-                  icon: Icons.person_outline,
-                  label: 'Pemilik',
-                  value: umkm.namaPemilik,
-                ),
-                _InfoRow(
-                  icon: Icons.place_outlined,
-                  label: 'Alamat',
-                  value: Formatters.address(umkm),
-                ),
-                _InfoRow(
-                  icon: Icons.my_location,
-                  label: 'Koordinat',
-                  value: Formatters.coordinates(umkm.latitude, umkm.longitude),
-                ),
-                _InfoRow(
-                  icon: Icons.update,
-                  label: 'Diperbarui',
-                  value: Formatters.date(umkm.updatedAt),
-                ),
-                if (umkm.deskripsi != null && umkm.deskripsi!.trim().isNotEmpty)
-                  _InfoRow(
-                    icon: Icons.notes_outlined,
-                    label: 'Deskripsi',
-                    value: umkm.deskripsi!,
-                  ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Lokasi'),
-                const SizedBox(height: 8),
-                _MiniMap(umkm: umkm),
-              ],
+              ),
             ),
           ),
         ],
@@ -181,33 +205,54 @@ class _PhotoHeader extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final photoUrl = umkm.fotoUrl;
 
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: photoUrl == null || photoUrl.isEmpty
-          ? ColoredBox(
-              color: colorScheme.primaryContainer,
-              child: Icon(
-                Icons.storefront,
-                size: 72,
-                color: colorScheme.onPrimaryContainer,
-              ),
-            )
-          : CachedNetworkImage(
-              imageUrl: photoUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, _) => ColoredBox(
-                color: colorScheme.surfaceContainerHighest,
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (context, _, _) => ColoredBox(
-                color: colorScheme.primaryContainer,
-                child: Icon(
-                  Icons.broken_image_outlined,
-                  size: 64,
-                  color: colorScheme.onPrimaryContainer,
+    return SizedBox(
+      height: 260,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          photoUrl == null || photoUrl.isEmpty
+              ? ColoredBox(
+                  color: colorScheme.primaryContainer,
+                  child: Icon(
+                    Icons.storefront,
+                    size: 80,
+                    color: colorScheme.primary,
+                  ),
+                )
+              : CachedNetworkImage(
+                  imageUrl: photoUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, _) => ColoredBox(
+                    color: colorScheme.primaryContainer,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, _, _) => ColoredBox(
+                    color: colorScheme.primaryContainer,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      size: 64,
+                      color: colorScheme.primary,
+                    ),
+                  ),
                 ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.6, 1],
+                colors: [
+                  Colors.transparent,
+                  const Color(
+                    AppColors.onPrimaryContainer,
+                  ).withValues(alpha: 0.35),
+                ],
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -227,6 +272,19 @@ class _ActionButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<UmkmProvider>();
     final isBusy = provider.isDeleting || provider.isChangingStatus;
+    final colorScheme = Theme.of(context).colorScheme;
+    final tonalStyle = FilledButton.styleFrom(
+      minimumSize: const Size(0, 44),
+      backgroundColor: colorScheme.primaryContainer,
+      foregroundColor: colorScheme.primary,
+      shape: const StadiumBorder(),
+    );
+    final destructiveStyle = OutlinedButton.styleFrom(
+      minimumSize: const Size(0, 44),
+      foregroundColor: colorScheme.error,
+      side: BorderSide(color: colorScheme.error),
+      shape: const StadiumBorder(),
+    );
 
     return Wrap(
       spacing: 8,
@@ -238,21 +296,24 @@ class _ActionButtons extends StatelessWidget {
           label: const Text('Arahkan'),
         ),
         if (canEdit)
-          OutlinedButton.icon(
+          FilledButton.tonalIcon(
+            style: tonalStyle,
             onPressed: isBusy
                 ? null
-                : () => context.go('/umkm-form', extra: umkm),
+                : () => context.push('/umkm-form', extra: umkm),
             icon: const Icon(Icons.edit_outlined),
             label: const Text('Edit'),
           ),
         if (canEdit)
           OutlinedButton.icon(
+            style: destructiveStyle,
             onPressed: isBusy ? null : () => _confirmDelete(context),
             icon: const Icon(Icons.delete_outline),
             label: const Text('Hapus'),
           ),
         if (canVerify && umkm.status != 'verified')
-          FilledButton.icon(
+          FilledButton.tonalIcon(
+            style: tonalStyle,
             onPressed: isBusy
                 ? null
                 : () => _setStatus(context, 'verified', 'UMKM diverifikasi.'),
@@ -261,6 +322,7 @@ class _ActionButtons extends StatelessWidget {
           ),
         if (canVerify && umkm.status != 'rejected')
           OutlinedButton.icon(
+            style: destructiveStyle,
             onPressed: isBusy
                 ? null
                 : () => _setStatus(context, 'rejected', 'UMKM ditolak.'),
@@ -340,6 +402,225 @@ class _ActionButtons extends StatelessWidget {
               ? provider.mutationErrorMessage ??
                     'Gagal memperbarui status UMKM.'
               : successMessage,
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.children});
+
+  final List<_InfoRow> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              children[i],
+              if (i != children.length - 1)
+                const Divider(height: 1, color: Color(AppColors.hairline)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        color: const Color(AppColors.textPrimary),
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 18, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(AppColors.textSubtle),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniMap extends StatefulWidget {
+  const _MiniMap({required this.umkm});
+
+  final Umkm umkm;
+
+  @override
+  State<_MiniMap> createState() => _MiniMapState();
+}
+
+class _MiniMapState extends State<_MiniMap> {
+  bool _tileErrorVisible = false;
+  int _tileRetryKey = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final point = LatLng(widget.umkm.latitude, widget.umkm.longitude);
+    final colorScheme = Theme.of(context).colorScheme;
+    final markerColor = Color(AppColors.markerPalette.first);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        height: 190,
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.radiusCard),
+              child: FlutterMap(
+                options: MapOptions(
+                  initialCenter: point,
+                  initialZoom: 15,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.none,
+                  ),
+                ),
+                children: [
+                  TileLayer(
+                    key: ValueKey(_tileRetryKey),
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.ppb2026.umkmap',
+                    tileProvider: NetworkTileProvider(silenceExceptions: true),
+                    errorTileCallback: (_, _, _) {
+                      if (!_tileErrorVisible && mounted) {
+                        setState(() => _tileErrorVisible = true);
+                      }
+                    },
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: point,
+                        width: 46,
+                        height: 46,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              size: 48,
+                              color: Color(AppColors.surface),
+                            ),
+                            Icon(
+                              Icons.location_on,
+                              size: 44,
+                              color: markerColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (_tileErrorVisible)
+              Positioned(
+                left: 8,
+                right: 8,
+                top: 8,
+                child: Material(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.radiusPill),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.wifi_off, color: colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Tidak ada koneksi internet',
+                            style: TextStyle(color: colorScheme.onSurface),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _tileRetryKey++;
+                              _tileErrorVisible = false;
+                            });
+                          },
+                          child: const Text('Coba Lagi'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -498,7 +779,8 @@ class _CompassNavigationSheetState extends State<_CompassNavigationSheet> {
             Text(
               'Arahkan ke UMKM',
               style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+                color: const Color(AppColors.textPrimary),
+                fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 4),
@@ -506,11 +788,11 @@ class _CompassNavigationSheetState extends State<_CompassNavigationSheet> {
               widget.umkm.namaUsaha,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: const Color(AppColors.textMuted),
               ),
             ),
             const SizedBox(height: 20),
-            CompassArrow(turns: turns, arrived: arrived),
+            CompassArrow(turns: turns, arrived: arrived, size: 180),
             const SizedBox(height: 20),
             Text(
               arrived
@@ -519,8 +801,10 @@ class _CompassNavigationSheetState extends State<_CompassNavigationSheet> {
                   ? 'Mengambil jarak...'
                   : _formatDistance(distance),
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: arrived ? Colors.green.shade700 : null,
+                color: arrived
+                    ? const Color(AppColors.statusVerifiedText)
+                    : theme.colorScheme.primary,
+                fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 8),
@@ -528,7 +812,9 @@ class _CompassNavigationSheetState extends State<_CompassNavigationSheet> {
               currentPoint == null
                   ? 'Menunggu lokasi Anda.'
                   : 'Arah ${bearing.toStringAsFixed(0)} derajat dari utara',
-              style: theme.textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(AppColors.textMuted),
+              ),
             ),
             if (_isLoadingLocation) ...[
               const SizedBox(height: 16),
@@ -588,8 +874,8 @@ class _Notice extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -603,174 +889,6 @@ class _Notice extends StatelessWidget {
               const SizedBox(width: 8),
               TextButton(onPressed: onPressed, child: Text(actionLabel!)),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(
-        context,
-      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 22, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.outline,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(value, style: theme.textTheme.bodyMedium),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniMap extends StatefulWidget {
-  const _MiniMap({required this.umkm});
-
-  final Umkm umkm;
-
-  @override
-  State<_MiniMap> createState() => _MiniMapState();
-}
-
-class _MiniMapState extends State<_MiniMap> {
-  bool _tileErrorVisible = false;
-  int _tileRetryKey = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final point = LatLng(widget.umkm.latitude, widget.umkm.longitude);
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        height: 190,
-        child: Stack(
-          children: [
-            FlutterMap(
-              options: MapOptions(
-                initialCenter: point,
-                initialZoom: 15,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.none,
-                ),
-              ),
-              children: [
-                TileLayer(
-                  key: ValueKey(_tileRetryKey),
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.ppb2026.umkmap',
-                  tileProvider: NetworkTileProvider(silenceExceptions: true),
-                  errorTileCallback: (_, _, _) {
-                    if (!_tileErrorVisible && mounted) {
-                      setState(() => _tileErrorVisible = true);
-                    }
-                  },
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: point,
-                      width: 46,
-                      height: 46,
-                      child: Icon(
-                        Icons.location_on,
-                        size: 44,
-                        color: colorScheme.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            if (_tileErrorVisible)
-              Positioned(
-                left: 8,
-                right: 8,
-                top: 8,
-                child: Material(
-                  color: colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.wifi_off,
-                          color: colorScheme.onErrorContainer,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Tidak ada koneksi internet',
-                            style: TextStyle(
-                              color: colorScheme.onErrorContainer,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _tileRetryKey++;
-                              _tileErrorVisible = false;
-                            });
-                          },
-                          child: const Text('Coba Lagi'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

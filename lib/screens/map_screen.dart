@@ -11,6 +11,7 @@ import '../providers/location_provider.dart';
 import '../providers/umkm_provider.dart';
 import '../services/location_service.dart';
 import '../utils/formatters.dart';
+import '../utils/constants.dart';
 import '../widgets/map_coordinate_picker.dart';
 
 class MapScreen extends StatefulWidget {
@@ -26,6 +27,8 @@ class _MapScreenState extends State<MapScreen> {
   bool _hasAutoCentered = false;
   bool _tileErrorVisible = false;
   int _tileRetryKey = 0;
+  int? _selectedCategoryId;
+  String? _selectedMarkerId;
 
   @override
   void initState() {
@@ -51,15 +54,20 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final umkmProvider = context.watch<UmkmProvider>();
     final locationProvider = context.watch<LocationProvider>();
-    final markers = umkmProvider.mapItems;
+    final allItems = umkmProvider.mapItems;
+    final visibleItems = _selectedCategoryId == null
+        ? allItems
+        : allItems
+              .where((umkm) => umkm.kategoriId == _selectedCategoryId)
+              .toList(growable: false);
     final currentLocation = locationProvider.currentLocation;
     final initialCenter =
         currentLocation ??
-        (markers.isEmpty
+        (allItems.isEmpty
             ? MapCoordinatePicker.defaultCenter
-            : LatLng(markers.first.latitude, markers.first.longitude));
+            : LatLng(allItems.first.latitude, allItems.first.longitude));
 
-    _autoCenterOnce(currentLocation, markers);
+    _autoCenterOnce(currentLocation, allItems);
 
     return Scaffold(
       appBar: AppBar(
@@ -95,14 +103,20 @@ class _MapScreenState extends State<MapScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  ...markers.map(
+                  ...visibleItems.map(
                     (umkm) => Marker(
                       point: LatLng(umkm.latitude, umkm.longitude),
-                      width: 44,
-                      height: 44,
+                      width: 140,
+                      height: 80,
+                      alignment: Alignment.topCenter,
                       child: _UmkmMarker(
-                        color: _categoryColor(context, umkm.kategoriId),
-                        onTap: () => _showUmkmSheet(context, umkm),
+                        label: umkm.namaUsaha,
+                        color: _categoryColor(umkm.kategoriId),
+                        selected: _selectedMarkerId == umkm.id,
+                        onTap: () {
+                          setState(() => _selectedMarkerId = umkm.id);
+                          _showUmkmSheet(context, umkm);
+                        },
                       ),
                     ),
                   ),
@@ -112,14 +126,14 @@ class _MapScreenState extends State<MapScreen> {
                       width: 34,
                       height: 34,
                       child: _UserLocationDot(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: const Color(AppColors.userLocation),
                       ),
                     ),
                 ],
               ),
             ],
           ),
-          if (umkmProvider.isLoadingMapItems && markers.isEmpty)
+          if (umkmProvider.isLoadingMapItems && allItems.isEmpty)
             const Positioned(
               left: 0,
               right: 0,
@@ -144,14 +158,15 @@ class _MapScreenState extends State<MapScreen> {
               onRetryLocation: _refreshLocation,
             ),
           ),
-          if (!umkmProvider.isLoadingMapItems && markers.isEmpty)
+          if (!umkmProvider.isLoadingMapItems && visibleItems.isEmpty)
             Positioned.fill(
               child: IgnorePointer(
                 child: Center(
                   child: _EmptyMapMessage(
-                    message:
-                        umkmProvider.mapErrorMessage ??
-                        'Belum ada UMKM terverifikasi di peta.',
+                    message: _selectedCategoryId == null
+                        ? umkmProvider.mapErrorMessage ??
+                              'Belum ada UMKM terverifikasi di peta.'
+                        : 'Belum ada UMKM kategori ini di peta.',
                   ),
                 ),
               ),
@@ -162,21 +177,21 @@ class _MapScreenState extends State<MapScreen> {
             bottom: 16,
             child: _CategoryLegend(
               categories: umkmProvider.categories,
-              colorFor: (id) => _categoryColor(context, id),
+              selectedId: _selectedCategoryId,
+              colorFor: _categoryColor,
+              onToggle: (id) {
+                setState(() {
+                  _selectedCategoryId = _selectedCategoryId == id ? null : id;
+                });
+              },
             ),
           ),
           Positioned(
             right: 16,
             bottom: 16,
-            child: FloatingActionButton.small(
-              tooltip: 'Lokasi saya',
+            child: _MyLocationButton(
+              isLoading: locationProvider.isLoading,
               onPressed: locationProvider.isLoading ? null : _moveToMyLocation,
-              child: locationProvider.isLoading
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.my_location),
             ),
           ),
         ],
@@ -233,23 +248,23 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Color _categoryColor(BuildContext context, int kategoriId) {
-    final colors = <Color>[
-      Theme.of(context).colorScheme.secondary,
-      const Color(0xFF2E7D32),
-      const Color(0xFF1565C0),
-      const Color(0xFF6A1B9A),
-      const Color(0xFFEF6C00),
-      const Color(0xFF00838F),
-    ];
-    return colors[(kategoriId - 1).abs() % colors.length];
+  Color _categoryColor(int kategoriId) {
+    final colors = AppColors.markerPalette;
+    return Color(colors[(kategoriId - 1).abs() % colors.length]);
   }
 }
 
 class _UmkmMarker extends StatelessWidget {
-  const _UmkmMarker({required this.color, required this.onTap});
+  const _UmkmMarker({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
 
+  final String label;
   final Color color;
+  final bool selected;
   final VoidCallback onTap;
 
   @override
@@ -257,7 +272,90 @@ class _UmkmMarker extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Icon(Icons.location_on, size: 42, color: color),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 120),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(AppRadii.radiusPill),
+                border: Border.all(
+                  color: color.withValues(alpha: selected ? 1 : 0.6),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(
+                      AppColors.textPrimary,
+                    ).withValues(alpha: 0.12),
+                    blurRadius: 4,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: const Color(AppColors.textPrimary),
+                ),
+              ),
+            ),
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(
+                Icons.location_on,
+                size: selected ? 48 : 40,
+                color: Theme.of(context).colorScheme.surface,
+              ),
+              Icon(Icons.location_on, size: selected ? 44 : 36, color: color),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MyLocationButton extends StatelessWidget {
+  const _MyLocationButton({required this.isLoading, required this.onPressed});
+
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: colorScheme.surface,
+      elevation: 1,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: SizedBox.square(
+          dimension: 48,
+          child: Center(
+            child: isLoading
+                ? SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colorScheme.primary,
+                    ),
+                  )
+                : Icon(Icons.my_location, color: colorScheme.primary),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -392,8 +490,8 @@ class _MapBanner extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Material(
-      elevation: 2,
-      borderRadius: BorderRadius.circular(8),
+      elevation: 1,
+      borderRadius: BorderRadius.circular(AppRadii.radiusPill),
       color: colorScheme.surface,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -404,7 +502,9 @@ class _MapBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(AppColors.textMuted),
+                ),
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
@@ -426,22 +526,40 @@ class _EmptyMapMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadii.radiusPill),
       color: Theme.of(context).colorScheme.surface,
       elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(message, textAlign: TextAlign.center),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.info_outline,
+              color: Theme.of(context).colorScheme.primary,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Flexible(child: Text(message, textAlign: TextAlign.center)),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _CategoryLegend extends StatelessWidget {
-  const _CategoryLegend({required this.categories, required this.colorFor});
+  const _CategoryLegend({
+    required this.categories,
+    required this.selectedId,
+    required this.colorFor,
+    required this.onToggle,
+  });
 
   final List<Kategori> categories;
+  final int? selectedId;
   final Color Function(int id) colorFor;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -457,6 +575,8 @@ class _CategoryLegend extends StatelessWidget {
                 child: _LegendChip(
                   label: category.nama,
                   color: colorFor(category.id),
+                  selected: selectedId == category.id,
+                  onTap: () => onToggle(category.id),
                 ),
               ),
             )
@@ -467,26 +587,62 @@ class _CategoryLegend extends StatelessWidget {
 }
 
 class _LegendChip extends StatelessWidget {
-  const _LegendChip({required this.label, required this.color});
+  const _LegendChip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final Color color;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foregroundColor = selected
+        ? theme.colorScheme.onPrimary
+        : const Color(AppColors.textMuted);
+
     return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.location_on, size: 18, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
+      color: selected ? color : theme.colorScheme.surface,
+      shape: StadiumBorder(
+        side: selected
+            ? BorderSide.none
+            : const BorderSide(color: Color(AppColors.hairline)),
+      ),
+      elevation: selected ? 1 : 0,
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: selected ? theme.colorScheme.onPrimary : color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: selected ? FontWeight.w700 : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -506,78 +662,86 @@ class _UmkmMapSheet extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox.square(
-                dimension: 76,
-                child: photoUrl == null || photoUrl.isEmpty
-                    ? ColoredBox(
-                        color: theme.colorScheme.primaryContainer,
-                        child: Icon(
-                          Icons.storefront,
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: photoUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => ColoredBox(
-                          color: theme.colorScheme.primaryContainer,
-                          child: Icon(
-                            Icons.broken_image_outlined,
-                            color: theme.colorScheme.onPrimaryContainer,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
+                  child: SizedBox.square(
+                    dimension: 72,
+                    child: photoUrl == null || photoUrl.isEmpty
+                        ? ColoredBox(
+                            color: theme.colorScheme.primaryContainer,
+                            child: Icon(
+                              Icons.storefront,
+                              color: theme.colorScheme.primary,
+                            ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: photoUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => ColoredBox(
+                              color: theme.colorScheme.primaryContainer,
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
                           ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        umkm.namaUsaha,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-              ),
+                      const SizedBox(height: 4),
+                      Text(
+                        umkm.kategoriNama ?? 'Kategori ${umkm.kategoriId}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        Formatters.address(umkm),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(AppColors.textSubtle),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    umkm.namaUsaha,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    umkm.kategoriNama ?? 'Kategori ${umkm.kategoriId}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    Formatters.address(umkm),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        context.go('/umkm/${umkm.id}');
-                      },
-                      icon: const Icon(Icons.chevron_right),
-                      label: const Text('Detail'),
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  final router = GoRouter.of(context);
+                  Navigator.of(context).pop();
+                  router.push('/umkm/${umkm.id}');
+                },
+                icon: const Icon(Icons.chevron_right),
+                label: const Text('Detail'),
               ),
             ),
           ],

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../utils/app_exception.dart';
+import '../utils/constants.dart';
 import '../widgets/app_text_field.dart';
 import '../widgets/primary_button.dart';
 
@@ -49,6 +50,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Daftar')),
@@ -63,6 +66,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Center(
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.storefront,
+                          size: 36,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Buat akun',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Daftar untuk mulai mendata UMKM Anda',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(AppColors.textMuted),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     AppTextField(
                       controller: _fullNameController,
                       label: 'Nama lengkap',
@@ -101,6 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           _obscurePassword
                               ? Icons.visibility
                               : Icons.visibility_off,
+                          color: const Color(AppColors.oliveGrey),
                         ),
                       ),
                       validator: (value) {
@@ -157,24 +194,24 @@ class _AuthErrorMessage extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: isOffline ? colorScheme.errorContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        color: isOffline
+            ? const Color(AppColors.statusRejectedFill)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadii.radiusThumb),
       ),
       child: Padding(
         padding: EdgeInsets.all(isOffline ? 12 : 0),
         child: Row(
           children: [
             if (isOffline) ...[
-              Icon(Icons.wifi_off, color: colorScheme.onErrorContainer),
+              Icon(Icons.wifi_off, color: colorScheme.error),
               const SizedBox(width: 10),
             ],
             Expanded(
               child: Text(
                 message,
                 style: TextStyle(
-                  color: isOffline
-                      ? colorScheme.onErrorContainer
-                      : colorScheme.error,
+                  color: isOffline ? colorScheme.error : colorScheme.error,
                 ),
               ),
             ),

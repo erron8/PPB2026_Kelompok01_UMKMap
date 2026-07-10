@@ -369,7 +369,6 @@ class _WilayahDropdownField extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
         suffixIcon: isLoading
             ? const Padding(
                 padding: EdgeInsets.all(12),

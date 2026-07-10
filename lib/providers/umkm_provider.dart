@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -268,6 +270,7 @@ class UmkmProvider extends ChangeNotifier {
       selectedUmkm = created;
       _upsertItem(created);
       _upsertMapItem(created);
+      _addCreatedToDashboard(created);
       mutationErrorMessage = null;
       return created;
     } on AppException catch (error) {
@@ -353,6 +356,7 @@ class UmkmProvider extends ChangeNotifier {
       _upsertItem(updated);
       _upsertMapItem(updated);
       mutationErrorMessage = null;
+      unawaited(_refreshAdminDashboard());
       return updated;
     } on AppException catch (error) {
       mutationErrorMessage = error.message;
@@ -360,6 +364,38 @@ class UmkmProvider extends ChangeNotifier {
     } finally {
       isChangingStatus = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _refreshAdminDashboard() async {
+    await Future.wait([
+      loadPendingVerification(),
+      loadDashboardStats(ownerId: null),
+      loadDashboardRecent(ownerId: null),
+    ]);
+  }
+
+  void _addCreatedToDashboard(Umkm created) {
+    dashboardRecentItems = [
+      created,
+      ...dashboardRecentItems,
+    ].take(5).toList(growable: false);
+
+    if (created.status == 'pending') {
+      pendingVerificationItems = [
+        created,
+        ...pendingVerificationItems,
+      ].take(5).toList(growable: false);
+    }
+
+    final current = stats;
+    if (current != null) {
+      stats = DashboardStats(
+        total: current.total + 1,
+        verified: current.verified + (created.status == 'verified' ? 1 : 0),
+        pending: current.pending + (created.status == 'pending' ? 1 : 0),
+        rejected: current.rejected + (created.status == 'rejected' ? 1 : 0),
+      );
     }
   }
 

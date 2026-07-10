@@ -55,9 +55,9 @@ create or replace function public.is_admin() returns boolean as $$
                  where id = auth.uid() and role = 'admin');
 $$ language sql security definer;
 
--- Public (even anonymous) can read verified UMKM only
+-- Anonymous guests can read verified UMKM; authenticated users can read all UMKM
 create policy "public read verified" on public.umkm
-  for select using (status = 'verified' or owner_id = auth.uid() or public.is_admin());
+  for select using (status = 'verified' or auth.role() = 'authenticated');
 
 -- Owners insert their own rows
 create policy "owner insert" on public.umkm
