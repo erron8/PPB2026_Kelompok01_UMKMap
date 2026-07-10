@@ -47,5 +47,8 @@ app.*.map.json
 # Release binaries are attached to GitHub Releases, not committed.
 *.apk
 
+# Report deliverables (screenshots/PDF reveal app internals — keep local only)
+report/
+
 # Local Supabase dart-defines — never commit
 env.json

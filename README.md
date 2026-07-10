@@ -152,7 +152,7 @@ SQL lengkap ada di [`lib/database/schema.sql`](lib/database/schema.sql).
 Pembagian berikut mengikuti bukti commit lokal saat README ini ditulis. `git shortlog -sne --all` menampilkan author commit berikut: `errondotsol <howlingdxd@gmail.com>` 40 commit, `aristokragus <agusdindin842@gmail.com>` 5 commit, dan `BintangKartika <bintangkartika3008@gmail.com>` 2 commit.
 
 | Anggota / author commit | Bukti commit | Kontribusi yang terlihat di commit |
-| --- | --- |
+| --- | --- | --- |
 | I Made Agastya Wedastika / `errondotsol <howlingdxd@gmail.com>` | 40 commits | Bootstrap Flutter, Supabase/auth/session, CRUD UMKM, camera/storage, API wilayah/geocoding, map/location, compass, dashboard/profile, hardening, QA, README, release deliverables |
 | I GST. N. PT. Diana Putra Pratama / `aristokragus <agusdindin842@gmail.com>` | 5 commits | Sistem laporan, opsi jam operasional, admin reporting tabs, detail kategori dinamis, poin/tier, dan update profil |
 | I Made Bintang Kartika Yasa / `BintangKartika <bintangkartika3008@gmail.com>` | 2 commits | Refactor struktur kode dan merge contributor |
