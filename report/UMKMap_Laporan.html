@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Laporan Proyek UMKMap</title>
+  <style>
+    @page {
+      margin: 18mm;
+    }
+    body {
+      color: #22251f;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+    }
+    h1 {
+      color: #3a431c;
+      font-size: 24pt;
+      margin: 0 0 6mm;
+    }
+    h2 {
+      border-bottom: 1px solid #dfe4d2;
+      color: #5c6b2f;
+      font-size: 15pt;
+      margin: 9mm 0 3mm;
+      padding-bottom: 1.5mm;
+    }
+    h3 {
+      color: #3a431c;
+      font-size: 12.5pt;
+      margin: 5mm 0 2mm;
+    }
+    p {
+      margin: 0 0 3mm;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 3mm 0 5mm;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #dfe4d2;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #e8f0d2;
+      color: #303816;
+      font-weight: 700;
+    }
+    code, pre {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 9.5pt;
+    }
+    pre {
+      background: #f4f5f0;
+      border: 1px solid #dfe4d2;
+      border-radius: 6px;
+      padding: 10px;
+      white-space: pre-wrap;
+    }
+    ul {
+      margin: 0 0 4mm 5mm;
+      padding: 0;
+    }
+    li {
+      margin: 0 0 1.5mm;
+    }
+    .meta {
+      background: #f4f5f0;
+      border: 1px solid #dfe4d2;
+      border-radius: 8px;
+      margin-bottom: 7mm;
+      padding: 10px 12px;
+    }
+    .pass {
+      color: #2e7d32;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <h1>Laporan Proyek UMKMap</h1>
+  <div class="meta">
+    <p><strong>Mata kuliah:</strong> Mobile Device Programming (TI253311)</p>
+    <p><strong>Aplikasi:</strong> UMKMap</p>
+    <p><strong>Repository:</strong> PPB2026_Kelompok01_UMKMap</p>
+    <p><strong>Versi:</strong> 1.0.0+14</p>
+  </div>
+
+  <h2>Identitas Kelompok</h2>
+  <table>
+    <tr><th>Nama</th><th>NIM</th></tr>
+    <tr><td>I GST. N. PT. Diana Putra Pratama</td><td>240040118</td></tr>
+    <tr><td>I Made Agastya Wedastika</td><td>240040120</td></tr>
+    <tr><td>I Made Bintang Kartika Yasa</td><td>240040054</td></tr>
+  </table>
+
+  <h2>Bab 1 - Pendahuluan</h2>
+  <p>UMKMap adalah aplikasi pendataan UMKM berbasis Flutter dan Supabase. Aplikasi ini dibuat untuk membantu pemilik usaha, petugas lapangan, dan admin mengumpulkan data UMKM yang lebih rapi, terverifikasi, dan memiliki koordinat lokasi.</p>
+  <p>Masalah utama yang diselesaikan adalah pendataan UMKM yang masih tersebar di dokumen kertas atau spreadsheet, data lokasi yang hanya berbentuk alamat teks, dan rendahnya visibilitas UMKM lokal. UMKMap menawarkan solusi berupa aplikasi mobile dengan autentikasi, penyimpanan cloud, foto usaha, alamat administratif, koordinat peta, verifikasi admin, daftar publik, dan navigasi kompas menuju UMKM.</p>
+
+  <h2>Bab 2 - Analisis Kebutuhan</h2>
+  <table>
+    <tr><th>Kode</th><th>Kebutuhan</th><th>Implementasi</th></tr>
+    <tr><td>FR-01</td><td>Login dan session</td><td>Supabase Auth dan SharedPreferences</td></tr>
+    <tr><td>FR-02</td><td>Role routing</td><td>Admin, pemilik, dan guest melalui GoRouter</td></tr>
+    <tr><td>FR-03</td><td>Create UMKM</td><td>Form UMKM lengkap dengan foto, wilayah, dan koordinat</td></tr>
+    <tr><td>FR-04</td><td>Read UMKM</td><td>List, search, filter, detail, dan peta</td></tr>
+    <tr><td>FR-05</td><td>Update/delete UMKM</td><td>Edit dan hapus dengan guard role</td></tr>
+    <tr><td>FR-06</td><td>Verifikasi admin</td><td>Approve/reject status UMKM</td></tr>
+    <tr><td>FR-07</td><td>Multi-page navigation</td><td>9 halaman utama</td></tr>
+    <tr><td>FR-08</td><td>Camera</td><td>Capture foto, kompres, upload</td></tr>
+    <tr><td>FR-09</td><td>Map dan location</td><td>OpenStreetMap, marker, user location</td></tr>
+    <tr><td>FR-10</td><td>Coordinate picker</td><td>Pilih titik UMKM di peta</td></tr>
+    <tr><td>FR-11</td><td>Sensor kompas</td><td>Bearing ke target dan jarak</td></tr>
+    <tr><td>FR-12</td><td>API wilayah</td><td>API emsifa dan fallback asset</td></tr>
+    <tr><td>FR-13</td><td>Cloud database</td><td>Supabase Postgres, Storage, RLS</td></tr>
+  </table>
+  <p>Kebutuhan non-fungsional meliputi keamanan RLS, tidak ada service-role key di APK, error state berbahasa Indonesia, offline banner, target Android 7.0 ke atas, dan struktur folder berlapis.</p>
+
+  <h2>Bab 3 - Perancangan Sistem</h2>
+  <p>Arsitektur menggunakan pola berlapis:</p>
+  <pre>screens/widgets -> providers -> services -> Supabase/API/device</pre>
+  <p>State management menggunakan Provider agar implementasi mudah diaudit dan cukup ringan untuk cakupan proyek. Screen tidak memanggil Supabase langsung; semua akses data melewati provider dan service.</p>
+  <h3>Struktur Folder Utama</h3>
+  <pre>lib/
+  models/
+  services/
+  providers/
+  screens/
+  widgets/
+  database/
+  utils/</pre>
+  <h3>Route Utama</h3>
+  <ul>
+    <li>/splash</li>
+    <li>/login</li>
+    <li>/register</li>
+    <li>/dashboard</li>
+    <li>/umkm</li>
+    <li>/umkm/:id</li>
+    <li>/umkm/form</li>
+    <li>/map</li>
+    <li>/profile</li>
+  </ul>
+
+  <h2>Bab 4 - Implementasi</h2>
+  <p>Backend memakai Supabase Auth, Supabase Postgres, dan Supabase Storage. Tabel utama adalah <code>profiles</code>, <code>kategori_umkm</code>, dan <code>umkm</code>. RLS mengatur akses guest, pemilik, dan admin. Trigger signup membuat profil otomatis, sedangkan trigger update mengubah <code>updated_at</code> dan mengembalikan status ke <code>pending</code> ketika pemilik mengubah data.</p>
+  <ul>
+    <li>Auth dan session: AuthService, SessionService, AuthProvider</li>
+    <li>CRUD UMKM: UmkmService, UmkmProvider, form/list/detail</li>
+    <li>Storage foto: StorageService, PhotoPickerField</li>
+    <li>Wilayah Indonesia: WilayahApiService, WilayahDropdowns</li>
+    <li>Map dan lokasi: LocationService, LocationProvider, MapScreen</li>
+    <li>Kompas: CompassService, CompassArrow, bottom sheet navigasi</li>
+    <li>UI pendukung: card, status chip, loading/error, primary button</li>
+  </ul>
+  <pre>flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...</pre>
+
+  <h2>Bab 5 - Pengujian</h2>
+  <p>Regression QA Phase 13 telah dijalankan dengan hasil <strong>15/15 PASS</strong>. Detail skenario dan catatan ada di <code>report/qa-phase13.md</code>.</p>
+  <table>
+    <tr><th>ID</th><th>Skenario</th><th>Status</th></tr>
+    <tr><td>T-01</td><td>Login + session persist</td><td class="pass">PASS</td></tr>
+    <tr><td>T-02</td><td>Failed login</td><td class="pass">PASS</td></tr>
+    <tr><td>T-03</td><td>Logout</td><td class="pass">PASS</td></tr>
+    <tr><td>T-04</td><td>Create UMKM</td><td class="pass">PASS</td></tr>
+    <tr><td>T-05</td><td>Read + search/filter</td><td class="pass">PASS</td></tr>
+    <tr><td>T-06</td><td>Update UMKM</td><td class="pass">PASS</td></tr>
+    <tr><td>T-07</td><td>Delete UMKM</td><td class="pass">PASS</td></tr>
+    <tr><td>T-08</td><td>RLS enforcement</td><td class="pass">PASS</td></tr>
+    <tr><td>T-09</td><td>Admin verification</td><td class="pass">PASS</td></tr>
+    <tr><td>T-10</td><td>Camera permission denied</td><td class="pass">PASS</td></tr>
+    <tr><td>T-11</td><td>Map + user location</td><td class="pass">PASS</td></tr>
+    <tr><td>T-12</td><td>GPS disabled</td><td class="pass">PASS</td></tr>
+    <tr><td>T-13</td><td>Compass navigation</td><td class="pass">PASS</td></tr>
+    <tr><td>T-14</td><td>Region API cascade</td><td class="pass">PASS</td></tr>
+    <tr><td>T-15</td><td>No internet</td><td class="pass">PASS</td></tr>
+  </table>
+  <p>Pengujian otomatis juga mencakup model, provider, wilayah dropdown, photo picker, compass service, map coordinate picker, routing/auth gate, dashboard, dan widget dasar.</p>
+
+  <h2>Bab 6 - Penutup</h2>
+  <p>UMKMap memenuhi seluruh fitur wajib proyek: login/session, CRUD cloud database, multi-page navigation, camera, map/location, sensor kompas, API publik, dan Supabase sebagai database cloud. Aplikasi sudah memiliki gate QA yang lengkap dan release APK dapat dibuat melalui perintah build release.</p>
+  <p>Keterbatasan yang masih perlu diperhatikan sebelum pengumpulan adalah menempelkan screenshot final ke laporan PDF dan memastikan smoke test APK release pada perangkat Android bersih.</p>
+
+  <h2>Lampiran</h2>
+  <ul>
+    <li>SQL schema: <code>lib/database/schema.sql</code></li>
+    <li>QA log: <code>report/qa-phase13.md</code></li>
+    <li>Screenshot fitur: <code>report/screenshots/</code></li>
+    <li>APK release: <code>umkmap/PPB2026_Kelompok01.apk</code></li>
+  </ul>
+</body>
+</html>
