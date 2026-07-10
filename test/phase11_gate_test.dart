@@ -28,6 +28,13 @@ const _owner = AppUser(
   role: 'pemilik',
 );
 
+const _newOwner = AppUser(
+  id: 'owner-new',
+  email: 'pemilik-baru@umkmap.test',
+  fullName: 'Pemilik Baru',
+  role: 'pemilik',
+);
+
 const _admin = AppUser(
   id: 'admin-1',
   email: 'admin@umkmap.test',
@@ -38,21 +45,33 @@ const _admin = AppUser(
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('owner dashboard scopes stats and recent UMKM to owner id', (
+  testWidgets('owner dashboard uses global stats and recent UMKM', (
     tester,
   ) async {
     final service = _DashboardUmkmService();
     await _pumpDashboard(tester, user: _owner, service: service);
 
-    expect(service.statsOwnerIds, ['owner-1']);
-    expect(service.fetchCalls.single.ownerId, 'owner-1');
+    expect(service.statsOwnerIds, [null]);
+    expect(service.fetchCalls.single.ownerId, isNull);
     expect(service.fetchCalls.single.status, isNull);
     expect(find.text('Halo, Pemilik Satu'), findsOneWidget);
     expect(find.text('Pemilik'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pumpAndSettle();
-    expect(find.text('Warung Owner'), findsOneWidget);
+    expect(find.text('UMKM Global'), findsOneWidget);
+  });
+
+  testWidgets('new owner dashboard still sees global rows', (tester) async {
+    final service = _DashboardUmkmService();
+    await _pumpDashboard(tester, user: _newOwner, service: service);
+
+    expect(service.statsOwnerIds, [null]);
+    expect(service.fetchCalls.single.ownerId, isNull);
+    expect(find.text('Halo, Pemilik Baru'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+    expect(find.text('UMKM Global'), findsOneWidget);
   });
 
   testWidgets('admin dashboard uses global stats and shows pending section', (
@@ -62,6 +81,7 @@ void main() {
     await _pumpDashboard(tester, user: _admin, service: service);
 
     expect(service.statsOwnerIds, [null]);
+    expect(service.fetchCalls.map((call) => call.ownerId), [null, null]);
     expect(service.fetchCalls.map((call) => call.status), [null, 'pending']);
     expect(find.text('Halo, Admin UMKMap'), findsOneWidget);
     expect(find.text('Admin'), findsOneWidget);

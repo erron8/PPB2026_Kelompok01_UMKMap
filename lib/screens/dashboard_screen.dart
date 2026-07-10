@@ -30,7 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = auth.user;
     if (user == null) return;
 
-    final ownerId = user.isAdmin ? null : user.id;
+    const String? ownerId = null;
     final provider = context.read<UmkmProvider>();
     // Await every fetch so the pull-to-refresh spinner stays until the data
     // actually lands instead of retracting immediately.
@@ -123,11 +123,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 items: provider.dashboardRecentItems,
                 isLoading: provider.isLoadingDashboardRecent,
                 errorMessage: provider.dashboardRecentErrorMessage,
-                emptyMessage: auth.isAdmin
-                    ? 'Belum ada data UMKM.'
-                    : 'Anda belum memiliki data UMKM.',
+                emptyMessage: 'Belum ada data UMKM.',
                 onRetry: () => context.read<UmkmProvider>().loadDashboardRecent(
-                  ownerId: user?.isAdmin == true ? null : user?.id,
+                  ownerId: null,
                 ),
               ),
             ],
