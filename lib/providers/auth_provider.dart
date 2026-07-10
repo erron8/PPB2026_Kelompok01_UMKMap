@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/app_user.dart';
@@ -17,21 +19,30 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
   final SessionService _sessionService;
 
+  // Upper bound on the startup session restore so a hung/offline network call
+  // can never leave the app stuck on the splash indefinitely.
+  static const _restoreTimeout = Duration(seconds: 10);
+
   AuthStatus status = AuthStatus.unknown;
   AppUser? user;
   bool isLoading = false;
   String? errorMessage;
 
+  // True when restoreSession() could not reach the network. The app stays on
+  // the splash (status remains unknown) and offers a retry instead of hanging.
+  bool startupFailedOffline = false;
+
   bool get isAdmin => user?.isAdmin ?? false;
   bool get isGuest => status == AuthStatus.guest;
 
   Future<void> restoreSession() async {
+    startupFailedOffline = false;
     _setLoading(true);
     try {
       final savedSession = await _sessionService.load();
       final restoredUser = savedSession == null
           ? null
-          : await _authService.restore();
+          : await _authService.restore().timeout(_restoreTimeout);
 
       if (restoredUser == null) {
         await _sessionService.clear();
@@ -42,6 +53,20 @@ class AuthProvider extends ChangeNotifier {
         status = AuthStatus.authenticated;
       }
       errorMessage = null;
+    } on TimeoutException {
+      // Treated the same as offline: keep the saved session and let the user
+      // retry once connectivity returns.
+      startupFailedOffline = true;
+    } on AppException catch (error) {
+      if (error.isOffline) {
+        startupFailedOffline = true;
+      } else {
+        // A non-network failure (e.g. corrupt session) should not trap the
+        // user on the splash; fall back to guest so the app stays usable.
+        await _sessionService.clear();
+        user = null;
+        status = AuthStatus.guest;
+      }
     } finally {
       _setLoading(false);
     }

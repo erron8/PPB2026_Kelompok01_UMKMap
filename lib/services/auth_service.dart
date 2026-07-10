@@ -84,11 +84,18 @@ class AuthService {
   }
 
   Future<AppUser?> restore() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
     try {
-      final user = _client.auth.currentUser;
-      if (user == null) return null;
-      return _currentProfile(user);
-    } catch (_) {
+      return await _currentProfile(user);
+    } on AppException {
+      rethrow;
+    } catch (error) {
+      // A network failure must not be mistaken for "no session"; surface it so
+      // the caller can offer a retry instead of silently logging the user out.
+      if (AppException.isNetworkError(error)) {
+        throw const AppException(AppException.offlineMessage);
+      }
       return null;
     }
   }

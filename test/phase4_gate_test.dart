@@ -36,10 +36,15 @@ const _user = AppUser(
 /// AuthService double: no Supabase. [restoreUser] is what a persisted Supabase
 /// session would resolve to on the next launch (null = session gone).
 class _FakeAuthService implements AuthService {
-  _FakeAuthService({this.signInResult, this.restoreUser});
+  _FakeAuthService({this.signInResult, this.restoreUser, this.restoreError});
 
   final AppUser? signInResult;
-  final AppUser? restoreUser;
+  AppUser? restoreUser;
+
+  /// When set, [restore] throws this instead of returning [restoreUser],
+  /// simulating an offline / failed startup network call. Mutable so a test
+  /// can clear it to model connectivity returning between retries.
+  Object? restoreError;
 
   @override
   Future<AppUser> signIn({
@@ -62,7 +67,11 @@ class _FakeAuthService implements AuthService {
   Future<void> signOut() async {}
 
   @override
-  Future<AppUser?> restore() async => restoreUser;
+  Future<AppUser?> restore() async {
+    final error = restoreError;
+    if (error != null) throw error;
+    return restoreUser;
+  }
 }
 
 Future<GoRouter> _pumpRouterApp(
@@ -124,6 +133,43 @@ void main() {
       );
       await restarted.restoreSession();
 
+      expect(restarted.status, AuthStatus.authenticated);
+      expect(restarted.user?.id, 'u-1');
+    },
+  );
+
+  test(
+    'T-01c: offline restore stays retriable instead of hanging or logging out',
+    () async {
+      const session = SessionService();
+      await AuthProvider(
+        authService: _FakeAuthService(signInResult: _user),
+        sessionService: session,
+      ).login('e', 'p', rememberMe: true);
+
+      // Second run while offline: the profile fetch fails with a network error.
+      final fakeAuth = _FakeAuthService(
+        restoreError: const AppException(AppException.offlineMessage),
+      );
+      final restarted = AuthProvider(
+        authService: fakeAuth,
+        sessionService: session,
+      );
+      await restarted.restoreSession();
+
+      // Stays on the splash (unknown) with the retry flag, and the persisted
+      // session is preserved so a retry can succeed.
+      expect(restarted.status, AuthStatus.unknown);
+      expect(restarted.startupFailedOffline, isTrue);
+      expect(await session.load(), isNotNull);
+
+      // Connectivity returns: retrying resolves the session, no restart needed.
+      fakeAuth
+        ..restoreError = null
+        ..restoreUser = _user;
+      await restarted.restoreSession();
+
+      expect(restarted.startupFailedOffline, isFalse);
       expect(restarted.status, AuthStatus.authenticated);
       expect(restarted.user?.id, 'u-1');
     },
