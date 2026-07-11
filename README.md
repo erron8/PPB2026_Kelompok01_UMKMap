@@ -60,30 +60,6 @@ UMKMap menyediakan satu aplikasi cloud-backed dengan login berbasis role, CRUD d
 - `permission_handler` untuk alur izin kamera/lokasi
 - `cached_network_image` untuk foto di list/detail
 
-## Screenshot dan Bukti QA
-
-Hasil regression QA lengkap ada di [`report/qa-phase13.md`](report/qa-phase13.md). File tersebut mencatat T-01 sampai T-15 dengan status 15/15 PASS, termasuk tes live Supabase, kamera, map, GPS, offline state, dan kompas pada perangkat fisik. Setelah merge fitur contributor, gate otomatis release juga hijau (`flutter analyze`, `flutter test`, dan `flutter build apk --release --dart-define-from-file=env.json`).
-
-Screenshot deliverable tersimpan di [`report/screenshots/`](report/screenshots/):
-
-| Bukti fitur | Layar yang disarankan |
-| --- | --- |
-| Login | [`login.png`](report/screenshots/login.png) |
-| Dashboard owner | [`dashboard-owner.png`](report/screenshots/dashboard-owner.png) |
-| Session SharedPreferences | [`profile-session.png`](report/screenshots/profile-session.png) |
-| CRUD/list | [`umkm-list.png`](report/screenshots/umkm-list.png) |
-| CRUD/detail | [`umkm-detail.png`](report/screenshots/umkm-detail.png) |
-| CRUD/form | [`umkm-form.png`](report/screenshots/umkm-form.png) |
-| Map dan location | [`map.png`](report/screenshots/map.png) |
-| Sensor kompas | [`compass.png`](report/screenshots/compass.png) |
-| Offline handling | [`offline.png`](report/screenshots/offline.png) |
-| Admin verification | [`admin-verification.png`](report/screenshots/admin-verification.png) |
-| Detail kategori + jam operasional | [`umkm-detail.png`](report/screenshots/umkm-detail.png) |
-| Form kategori dinamis + jam operasional | [`umkm-form.png`](report/screenshots/umkm-form.png) |
-| Sistem laporan UMKM | [`umkm-detail.png`](report/screenshots/umkm-detail.png) |
-| Admin reporting tabs | [`admin-verification.png`](report/screenshots/admin-verification.png) |
-| Poin, tier, dan edit profil | [`profile-session.png`](report/screenshots/profile-session.png) |
-
 ## Instalasi dan Menjalankan
 
 1. Pastikan Flutter SDK, Android SDK, dan JDK sudah terpasang.
@@ -153,6 +129,6 @@ Pembagian berikut mengikuti bukti commit lokal saat README ini ditulis. `git sho
 
 | Anggota / author commit | Bukti commit | Kontribusi yang terlihat di commit |
 | --- | --- | --- |
-| I Made Agastya Wedastika / `errondotsol <howlingdxd@gmail.com>` | 40 commits | Bootstrap Flutter, Supabase/auth/session, CRUD UMKM, camera/storage, API wilayah/geocoding, map/location, compass, dashboard/profile, hardening, QA, README, release deliverables |
-| I GST. N. PT. Diana Putra Pratama / `aristokragus <agusdindin842@gmail.com>` | 5 commits | Sistem laporan, opsi jam operasional, admin reporting tabs, detail kategori dinamis, poin/tier, dan update profil |
-| I Made Bintang Kartika Yasa / `BintangKartika <bintangkartika3008@gmail.com>` | 2 commits | Refactor struktur kode dan merge contributor |
+| I Made Agastya Wedastika / `erron8` | 40 commits | Bootstrap Flutter, Supabase/auth/session, CRUD UMKM, camera/storage, API wilayah/geocoding, map/location, compass, dashboard/profile, hardening, QA, README, release deliverables, Final Report |
+| I GST. N. PT. Diana Putra Pratama / `aristokragus` | 5 commits | Sistem laporan, opsi jam operasional, admin reporting tabs, detail kategori dinamis, poin/tier, dan update profil |
+| I Made Bintang Kartika Yasa / `BintangKartika` | 2 commits | Refactor struktur kode dan merge contributor |
